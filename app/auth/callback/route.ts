@@ -6,29 +6,44 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
 
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/login";
+  const next = searchParams.get("next") ?? "/";
 
+  // Mencegah redirect ke alamat eksternal
   const safeNext =
     next.startsWith("/") && !next.startsWith("//")
       ? next
-      : "/login";
+      : "/";
 
-  if (code) {
+  if (!code) {
+    return NextResponse.redirect(
+      new URL("/login?error=auth", origin)
+    );
+  }
+
+  try {
     const supabase = await createClient();
 
     const { error } =
       await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error) {
+    if (error) {
+      console.error("OAuth callback error:", error.message);
+
       return NextResponse.redirect(
-        new URL(safeNext, origin)
+        new URL("/login?error=auth", origin)
       );
     }
 
-    console.error("OAuth callback error:", error.message);
-  }
+    // Login berhasil, arahkan ke halaman utama
+    return NextResponse.redirect(
+      new URL(safeNext, origin)
+    );
 
-  return NextResponse.redirect(
-    new URL("/login?error=auth", origin)
-  );
+  } catch (error) {
+    console.error("Callback error:", error);
+
+    return NextResponse.redirect(
+      new URL("/login?error=auth", origin)
+    );
+  }
 }
