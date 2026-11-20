@@ -1,26 +1,159 @@
 @import "tailwindcss";
 
+/* =====================================================
+   TRUSTX - GLOBAL CSS
+   Tailwind CSS v4
+===================================================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f6fa;
+  --foreground: #172033;
+
+  --navy: #162350;
+  --navy-soft: #22346b;
+  --muted: #667089;
+  --line: #e3e7f0;
+  --soft: #eef1f8;
+  --accent: #4f6bd8;
+  --accent-hover: #3d58c3;
+
+  --success: #16845b;
+  --warning: #b7791f;
+  --danger: #dc2626;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-navy: var(--navy);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --font-sans: Arial, Helvetica, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
 }
 
 body {
+  min-height: 100vh;
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body,
+button,
+input {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+::selection {
+  color: #ffffff;
+  background: var(--accent);
+}
+
+:focus-visible {
+  outline: 3px solid rgb(79 107 216 / 35%);
+  outline-offset: 3px;
+}
+
+/* Anchor navigation tidak tertutup navbar sticky */
+#beranda,
+#fitur,
+#cara-kerja,
+#cek-reputasi {
+  scroll-margin-top: 110px;
+}
+
+/* Animasi ringan untuk elemen halaman */
+@keyframes trustx-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes trustx-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.55;
+    transform: scale(0.88);
+  }
+}
+
+.trustx-fade-up {
+  animation: trustx-fade-up 650ms ease both;
+}
+
+.trustx-status-pulse {
+  animation: trustx-pulse 1.8s ease-in-out infinite;
+}
+
+/* Tampilan layar kecil */
+@media (max-width: 480px) {
+  html {
+    scroll-padding-top: 120px;
+  }
+
+  #beranda,
+  #fitur,
+  #cara-kerja,
+  #cek-reputasi {
+    scroll-margin-top: 120px;
+  }
+}
+
+/* Hormati pengaturan pengurangan animasi pengguna */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
