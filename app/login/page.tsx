@@ -1,7 +1,7 @@
 
 "use client";
 
-<<<<<<< HEAD
+// <<<<<<< HEAD
 import {
   useCallback,
   useEffect,
@@ -261,26 +261,6 @@ export default function LoginPage() {
       <div className="auth-card w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
 
         {/* LOGO */}
-=======
-import { useState, type FormEvent } from "react";
-import Image from "next/image";
-import Link from "next/link";
-
-export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState("");
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    setMessage("Form login belum terhubung ke backend.");
-  }
-
-  return (
-    <main className="auth-main min-h-screen flex items-center justify-center bg-[#f4f6fa] px-4 py-10">
-      <div className="auth-card w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-
->>>>>>> login
         <div className="auth-symbol mb-5 flex justify-center">
           <Image
             src="/assets/images/logo-trustx.svg"
@@ -291,10 +271,9 @@ export default function LoginPage() {
           />
         </div>
 
-<<<<<<< HEAD
+{/* <<<<<<< HEAD */}
         {/* JUDUL */}
-=======
->>>>>>> login
+ login
         <h1 className="text-center text-3xl font-bold text-[#162350]">
           Masuk ke Akun
         </h1>
@@ -304,22 +283,12 @@ export default function LoginPage() {
           sebelum transfer.
         </p>
 
-<<<<<<< HEAD
-        {/* FORM LOGIN */}
-        <form
-          id="loginForm"
-          className="form-stack mt-8 space-y-5"
-          onSubmit={handleSubmit}
-        >
-          {/* EMAIL */}
-=======
         <form
           id="loginForm"
           className="form-stack mt-8 space-y-5"
           noValidate
           onSubmit={handleSubmit}
         >
->>>>>>> login
           <div className="field">
             <label
               htmlFor="loginEmail"
@@ -343,7 +312,6 @@ export default function LoginPage() {
                 type="email"
                 id="loginEmail"
                 name="email"
-<<<<<<< HEAD
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
@@ -352,20 +320,11 @@ export default function LoginPage() {
                 disabled={loading || checkingSession}
                 placeholder="email@example.com"
                 className="w-full bg-transparent py-3 text-sm outline-none disabled:opacity-60"
-=======
-                autoComplete="email"
-                required
-                placeholder="email@example.com"
-                className="w-full bg-transparent py-3 text-sm outline-none"
->>>>>>> login
               />
             </div>
           </div>
 
-<<<<<<< HEAD
           {/* PASSWORD */}
-=======
->>>>>>> login
           <div className="field">
             <label
               htmlFor="loginPassword"
@@ -389,7 +348,6 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 id="loginPassword"
                 name="password"
-<<<<<<< HEAD
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
@@ -397,24 +355,13 @@ export default function LoginPage() {
                 disabled={loading || checkingSession}
                 placeholder="Kata sandi"
                 className="w-full bg-transparent py-3 text-sm outline-none disabled:opacity-60"
-=======
-                autoComplete="current-password"
-                required
-                placeholder="Kata sandi"
-                className="w-full bg-transparent py-3 text-sm outline-none"
->>>>>>> login
               />
 
               <button
                 type="button"
-<<<<<<< HEAD
                 onClick={() => setShowPassword((prev) => !prev)}
                 disabled={loading}
                 className="shrink-0 text-sm font-semibold text-[#4f6bd8]"
-=======
-                onClick={() => setShowPassword(!showPassword)}
-                className="text-sm font-semibold text-[#4f6bd8]"
->>>>>>> login
                 aria-label={
                   showPassword
                     ? "Sembunyikan kata sandi"
@@ -426,10 +373,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-<<<<<<< HEAD
           {/* LUPA PASSWORD */}
-=======
->>>>>>> login
           <p className="auth-hint text-right text-sm">
             <Link
               href="/lupa-password"
@@ -439,26 +383,18 @@ export default function LoginPage() {
             </Link>
           </p>
 
-<<<<<<< HEAD
           {/* PESAN */}
-=======
->>>>>>> login
           {message && (
             <p
               id="loginMessage"
               role="alert"
-<<<<<<< HEAD
               aria-live="polite"
               className="rounded-lg bg-red-50 p-3 text-sm text-red-600"
-=======
-              className="text-sm text-red-600"
->>>>>>> login
             >
               {message}
             </p>
           )}
 
-<<<<<<< HEAD
           {/* TOMBOL LOGIN */}
           <button
             type="submit"
@@ -474,23 +410,12 @@ export default function LoginPage() {
         </form>
 
         {/* PEMISAH */}
-=======
-          <button
-            type="submit"
-            className="check-btn w-full rounded-lg bg-[#162350] py-3 font-semibold text-white transition hover:bg-[#22346b]"
-          >
-            Masuk
-          </button>
-        </form>
-
->>>>>>> login
         <div className="socials-sep my-6 flex items-center gap-3 text-xs font-semibold text-gray-400">
           <span className="h-px flex-1 bg-gray-200" />
           ATAU
           <span className="h-px flex-1 bg-gray-200" />
         </div>
 
-<<<<<<< HEAD
         {/* LOGIN SOSIAL */}
         <div className="socials space-y-3">
           <button
@@ -513,33 +438,11 @@ export default function LoginPage() {
         </div>
 
         {/* DAFTAR */}
-=======
-        <div className="socials space-y-3">
-          <a
-            href="https://fahrezitolani.pythonanywhere.com/api/akun/oauth/x/start/"
-            className="btn out flex w-full justify-center rounded-lg border border-gray-300 py-3 text-sm font-semibold text-[#162350] transition hover:bg-gray-50"
-          >
-            MASUK via X
-          </a>
-
-          <a
-            href="https://fahrezitolani.pythonanywhere.com/api/akun/oauth/google/start/"
-            className="btn out flex w-full justify-center rounded-lg border border-gray-300 py-3 text-sm font-semibold text-[#162350] transition hover:bg-gray-50"
-          >
-            MASUK via Google
-          </a>
-        </div>
-
->>>>>>> login
         <p className="auth-switch mt-7 text-center text-sm text-gray-500">
           Belum punya akun?{" "}
           <Link
             href="/daftar"
-<<<<<<< HEAD
             className="font-bold text-[#4f6bd8] hover:underline"
-=======
-            className="font-semibold text-[#4f6bd8] hover:underline"
->>>>>>> login
           >
             Daftar
           </Link>
