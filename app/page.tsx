@@ -168,7 +168,7 @@ export default function LandingPage() {
           <div className="absolute -left-8 top-8 h-40 w-40 rounded-full bg-[#dce4ff] blur-3xl" />
           <div className="absolute -right-5 bottom-5 h-48 w-48 rounded-full bg-[#e5eaff] blur-3xl" />
 
-          <div className="relative rounded-[2rem] border border-white bg-white p-3 shadow-2xl shadow-[#162350]/10">
+          <div className="relative border border-white bg-white p-3 shadow-2xl shadow-[#162350]/10">
             <div className="flex items-center gap-3 rounded-2xl bg-[#f4f6fa] p-4">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-xl font-bold text-emerald-700">
                 ✓

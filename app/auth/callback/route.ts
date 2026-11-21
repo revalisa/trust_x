@@ -1,18 +1,9 @@
-
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
-
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
-
-  // Mencegah redirect ke alamat eksternal
-  const safeNext =
-    next.startsWith("/") && !next.startsWith("//")
-      ? next
-      : "/";
 
   if (!code) {
     return NextResponse.redirect(
@@ -23,24 +14,60 @@ export async function GET(request: Request) {
   try {
     const supabase = await createClient();
 
-    const { error } =
+    const { error: exchangeError } =
       await supabase.auth.exchangeCodeForSession(code);
 
-    if (error) {
-      console.error("OAuth callback error:", error.message);
+    if (exchangeError) {
+      console.error("OAuth exchange:", exchangeError.message);
 
       return NextResponse.redirect(
         new URL("/login?error=auth", origin)
       );
     }
 
-    // Login berhasil, arahkan ke halaman utama
-    return NextResponse.redirect(
-      new URL(safeNext, origin)
-    );
+    const { data: userData, error: userError } =
+      await supabase.auth.getUser();
 
+    if (userError || !userData.user) {
+      return NextResponse.redirect(
+        new URL("/login?error=auth", origin)
+      );
+    }
+
+    const { data: profile, error: profileError } =
+      await supabase
+        .from("profil_pengguna")
+        .select("jenis_akun")
+        .eq("id", userData.user.id)
+        .maybeSingle();
+
+    if (profileError || !profile) {
+      await supabase.auth.signOut();
+
+      return NextResponse.redirect(
+        new URL("/login?error=profile", origin)
+      );
+    }
+
+    if (profile.jenis_akun === "buyer") {
+      return NextResponse.redirect(
+        new URL("/buyer", origin)
+      );
+    }
+
+    if (profile.jenis_akun === "seller") {
+      return NextResponse.redirect(
+        new URL("/seller", origin)
+      );
+    }
+
+    await supabase.auth.signOut();
+
+    return NextResponse.redirect(
+      new URL("/login?error=role", origin)
+    );
   } catch (error) {
-    console.error("Callback error:", error);
+    console.error("OAuth callback:", error);
 
     return NextResponse.redirect(
       new URL("/login?error=auth", origin)
