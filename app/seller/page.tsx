@@ -132,7 +132,7 @@ export default function SellerPage() {
               Laporan
             </Link>
             <Link
-              href="/seller/profil-toko"
+              href="/seller/profil/detail-profil"
               className="rounded-xl px-4 py-2 text-sm font-semibold text-[#667089] hover:bg-[#eef1f8]"
             >
               Akun Toko
@@ -149,7 +149,7 @@ export default function SellerPage() {
             </button>
 
             <Link
-              href="/profil"
+              href="seller/profil/detail-profil"
               className="flex h-10 w-10 items-center justify-center rounded-full bg-[#182550] font-semibold text-white"
             >
               {nama.charAt(0).toUpperCase()}
