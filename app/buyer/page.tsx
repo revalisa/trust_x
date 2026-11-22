@@ -72,7 +72,13 @@ export default function BuyerPage() {
           return;
         }
 
+<<<<<<< HEAD
         if (!profile || profile.jenis_akun !== "buyer") {
+=======
+        const BuyerProfile = profile as BuyerProfile;
+
+        if (!profile || BuyerProfile.jenis_akun !== "buyer") {
+>>>>>>> buyer_version
           router.replace(
             profile?.jenis_akun === "seller" ? "/seller" : "/login"
           );
@@ -235,8 +241,11 @@ export default function BuyerPage() {
     }
   }
 
+<<<<<<< HEAD
   const initialProfil = nama.trim().charAt(0).toUpperCase() || "P";
 
+=======
+>>>>>>> buyer_version
   // ==========================================
   // LOADING
   // ==========================================
@@ -278,6 +287,7 @@ export default function BuyerPage() {
           </Link>
 
           {/* DESKTOP NAV */}
+<<<<<<< HEAD
           <nav className="hidden items-center gap-1 md:flex">
             <Link
               href="/buyer"
@@ -296,10 +306,62 @@ export default function BuyerPage() {
               href="/buyer/profil"
               className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[#68748c] transition hover:bg-[#f4f6fa] hover:text-[#162350]"
             >
+=======
+          <nav className="hidden items-center gap-2 md:flex">
+            <Link
+              href="/buyer/laporan"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#4f6bd8]"
+            >
+              <svg
+                className="h-4.5 w-4.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path d="m3 10 9-7 9 7" />
+                <path d="M5 9v11h14V9M9 20v-6h6v6" />
+              </svg>
+              Beranda
+            </Link>
+
+            <Link
+              href="/buyer/laporan"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#647089] transition hover:bg-[#f1f4fa] hover:text-[#162350]"
+            >
+              <svg
+                className="h-4.5 w-4.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6M8 13h8M8 17h6" />
+              </svg>
+              Laporan
+            </Link>
+
+            <Link
+              href="/buyer/profil"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#647089] transition hover:bg-[#f1f4fa] hover:text-[#162350]"
+            >
+              <svg
+                className="h-4.5 w-4.5"   
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <path d="M5 21a7 7 0 0 1 14 0" />
+              </svg>
+>>>>>>> buyer_version
               Profil
             </Link>
           </nav>
 
+<<<<<<< HEAD
           {/* HEADER ACTIONS */}
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {/* NOTIFICATION */}
@@ -310,17 +372,32 @@ export default function BuyerPage() {
               className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#e8ecf4] bg-white text-[#53617d] transition hover:border-[#cdd7f5] hover:bg-[#f5f7ff] hover:text-[#4f6bd8]"
             >
               <svg
+=======
+          {/* HEADER ACTION */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              aria-label="Notifikasi"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e3e7f0] bg-white text-[#647089] transition hover:bg-[#f4f6fa]"
+            >
+              <svg
+                className="h-5 w-5"
+>>>>>>> buyer_version
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.8"
+<<<<<<< HEAD
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 className="h-5 w-5 transition-transform duration-200 group-hover:-rotate-6 group-hover:scale-110"
+=======
+>>>>>>> buyer_version
               >
                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
                 <path d="M10 21h4" />
               </svg>
+<<<<<<< HEAD
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-[#4f6bd8]" />
             </button>
 
@@ -333,6 +410,25 @@ export default function BuyerPage() {
             >
               {initialProfil}
             </Link>
+=======
+            </button>
+
+            <Link
+              href="/buyer/profil"
+              aria-label="Profil pembeli"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#4f6bd8] to-[#162350] text-sm font-extrabold uppercase text-white shadow-md ring-2 ring-white"
+            >
+              {nama.slice(0, 1) || "B"}
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="hidden rounded-lg px-3 py-2 text-xs font-bold text-[#647089] transition hover:bg-red-50 hover:text-red-600 sm:block"
+            >
+              Keluar
+            </button>
+>>>>>>> buyer_version
           </div>
         </div>
 
@@ -1024,6 +1120,63 @@ export default function BuyerPage() {
             © 2026 TrustX. Cek Dulu Sebelum Transaksi.
           </p>
         </footer>
+<<<<<<< HEAD
+=======
+
+         {/* MOBILE NAV */}
+              <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-3 border-t border-[#e3e7f0] bg-white/95 px-3 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-lg md:hidden">
+                <Link
+                  href="/buyer"
+                  className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="m3 10 9-7 9 7" />
+                    <path d="M5 9v11h14V9M9 20v-6h6v6" />
+                  </svg>
+                  <span className="text-[10px] font-semibold">Beranda</span>
+                </Link>
+        
+                <Link
+                  href="/buyer/laporan"
+                  className="flex flex-col items-center gap-1 py-2 text-[#4f6bd8]"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 2v6h6M8 13h8M8 17h5" />
+                  </svg>
+                  <span className="text-[10px] font-bold">Laporan</span>
+                </Link>
+        
+                <Link
+                  href="/buyer/profil"
+                  className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M5 21a7 7 0 0 1 14 0" />
+                  </svg>
+                  <span className="text-[10px] font-semibold">Profil</span>
+                </Link>
+              </nav>
+>>>>>>> buyer_version
       </div>
     </main>
   );
