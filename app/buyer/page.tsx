@@ -72,13 +72,9 @@ export default function BuyerPage() {
           return;
         }
 
-<<<<<<< HEAD
-        if (!profile || profile.jenis_akun !== "buyer") {
-=======
         const BuyerProfile = profile as BuyerProfile;
 
         if (!profile || BuyerProfile.jenis_akun !== "buyer") {
->>>>>>> buyer_version
           router.replace(
             profile?.jenis_akun === "seller" ? "/seller" : "/login"
           );
@@ -241,11 +237,6 @@ export default function BuyerPage() {
     }
   }
 
-<<<<<<< HEAD
-  const initialProfil = nama.trim().charAt(0).toUpperCase() || "P";
-
-=======
->>>>>>> buyer_version
   // ==========================================
   // LOADING
   // ==========================================
@@ -287,26 +278,6 @@ export default function BuyerPage() {
           </Link>
 
           {/* DESKTOP NAV */}
-<<<<<<< HEAD
-          <nav className="hidden items-center gap-1 md:flex">
-            <Link
-              href="/buyer"
-              aria-current="page"
-              className="rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#405ec7]"
-            >
-              Beranda
-            </Link>
-            <Link
-              href="/buyer/laporan"
-              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[#68748c] transition hover:bg-[#f4f6fa] hover:text-[#162350]"
-            >
-              Laporan
-            </Link>
-            <Link
-              href="/buyer/profil"
-              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[#68748c] transition hover:bg-[#f4f6fa] hover:text-[#162350]"
-            >
-=======
           <nav className="hidden items-center gap-2 md:flex">
             <Link
               href="/buyer/laporan"
@@ -356,23 +327,10 @@ export default function BuyerPage() {
                 <circle cx="12" cy="8" r="4" />
                 <path d="M5 21a7 7 0 0 1 14 0" />
               </svg>
->>>>>>> buyer_version
               Profil
             </Link>
           </nav>
 
-<<<<<<< HEAD
-          {/* HEADER ACTIONS */}
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            {/* NOTIFICATION */}
-            <button
-              type="button"
-              aria-label="Notifikasi"
-              title="Notifikasi"
-              className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#e8ecf4] bg-white text-[#53617d] transition hover:border-[#cdd7f5] hover:bg-[#f5f7ff] hover:text-[#4f6bd8]"
-            >
-              <svg
-=======
           {/* HEADER ACTION */}
           <div className="flex items-center gap-2 sm:gap-3">
             <button
@@ -382,35 +340,14 @@ export default function BuyerPage() {
             >
               <svg
                 className="h-5 w-5"
->>>>>>> buyer_version
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.8"
-<<<<<<< HEAD
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5 transition-transform duration-200 group-hover:-rotate-6 group-hover:scale-110"
-=======
->>>>>>> buyer_version
               >
                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
                 <path d="M10 21h4" />
               </svg>
-<<<<<<< HEAD
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-[#4f6bd8]" />
-            </button>
-
-            {/* PROFILE AVATAR */}
-            <Link
-              href="/buyer/profil"
-              aria-label={`Profil ${nama}`}
-              title={nama}
-              className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-white bg-linear-to-br from-[#4f6bd8] to-[#162350] text-sm font-extrabold uppercase text-white shadow-md ring-1 ring-[#4f6bd8]/20 transition-all duration-200 hover:scale-105 hover:shadow-lg hover:ring-[#4f6bd8]/50"
-            >
-              {initialProfil}
-            </Link>
-=======
             </button>
 
             <Link
@@ -428,32 +365,8 @@ export default function BuyerPage() {
             >
               Keluar
             </button>
->>>>>>> buyer_version
           </div>
         </div>
-
-        {/* MOBILE NAV */}
-        <nav className="flex border-t border-[#edf0f6] px-3 py-2 md:hidden">
-          <Link
-            href="/buyer"
-            aria-current="page"
-            className="flex-1 rounded-lg bg-[#eef2ff] py-2 text-center text-xs font-bold text-[#405ec7]"
-          >
-            Beranda
-          </Link>
-          <Link
-            href="/buyer/laporan"
-            className="flex-1 rounded-lg py-2 text-center text-xs font-semibold text-[#68748c] transition hover:bg-[#f4f6fa]"
-          >
-            Laporan
-          </Link>
-          <Link
-            href="/buyer/profil"
-            className="flex-1 rounded-lg py-2 text-center text-xs font-semibold text-[#68748c] transition hover:bg-[#f4f6fa]"
-          >
-            Profil
-          </Link>
-        </nav>
       </header>
 
       <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pt-8 lg:px-8">
@@ -1120,8 +1033,6 @@ export default function BuyerPage() {
             © 2026 TrustX. Cek Dulu Sebelum Transaksi.
           </p>
         </footer>
-<<<<<<< HEAD
-=======
 
          {/* MOBILE NAV */}
               <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-3 border-t border-[#e3e7f0] bg-white/95 px-3 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-lg md:hidden">
@@ -1176,7 +1087,6 @@ export default function BuyerPage() {
                   <span className="text-[10px] font-semibold">Profil</span>
                 </Link>
               </nav>
->>>>>>> buyer_version
       </div>
     </main>
   );
