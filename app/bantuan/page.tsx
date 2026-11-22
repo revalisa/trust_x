@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -132,6 +133,7 @@ function Icon({
 
 export default function BantuanPage() {
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
 
   const [form, setForm] = useState<FormBantuan>(FORM_AWAL);
   const [userId, setUserId] = useState<string | null>(null);
@@ -269,6 +271,36 @@ export default function BantuanPage() {
     setMessageType("");
   }
 
+  function handleBack() {
+  if (!userId) {
+    router.push("/");
+    return;
+  }
+
+  async function redirectByRole() {
+    const { data, error } = await supabase
+      .from("profil_pengguna")
+      .select("jenis_akun")
+      .eq("id", userId)
+      .single();
+
+    if (error || !data) {
+      router.push("/");
+      return;
+    }
+
+    if (data.jenis_akun === "seller") {
+      router.push("/seller");
+    } else if (data.jenis_akun === "buyer") {
+      router.push("/buyer");
+    } else {
+      router.push("/");
+    }
+  }
+
+  redirectByRole();
+}
+
   return (
     <div className="min-h-screen bg-[#f4f6fa] text-[#172033]">
       {/* HEADER */}
@@ -296,14 +328,15 @@ export default function BantuanPage() {
             <span className="hidden text-sm font-bold text-[#162350] sm:block">
               Pusat Bantuan
             </span>
-            <Link
-              href="/buyer"
-              aria-label="Kembali ke beranda"
-              title="Kembali ke beranda"
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e3e8f1] bg-white text-[#162350] transition hover:bg-[#f4f6fa]"
-            >
-              <Icon name="back" />
-            </Link>
+            <button
+                type="button"
+                onClick={handleBack}
+                aria-label="Kembali ke beranda"
+                title="Kembali ke beranda"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e3e8f1] bg-white text-[#162350] transition hover:bg-[#f4f6fa]"
+                >
+                <Icon name="back" />
+            </button>
           </div>
         </div>
       </header>

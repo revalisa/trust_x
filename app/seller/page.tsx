@@ -662,7 +662,7 @@ export default function SellerPage() {
 
               <Link
                 href="/seller/lapor"
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#162350] shadow-sm transition hover:bg-[#eef2ff]"
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-[#dce2ed] bg-white px-5 py-3 text-sm font-bold text-[#162350] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#eef2ff] hover:shadow-md active:translate-y-0"
               >
                 <span className="text-lg leading-none">+</span>
                 Buat Laporan

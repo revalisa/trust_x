@@ -33,7 +33,7 @@ const FORM_KOSONG: FormProfil = {
   email: "",
 };
 
-export default function ProfilSellerPage() {
+export default function ProfilPage() {
   const router = useRouter();
 
   const [profil, setProfil] = useState<ProfilToko | null>(null);
@@ -61,7 +61,7 @@ export default function ProfilSellerPage() {
           await supabase.auth.getUser();
 
         if (authError || !authData.user) {
-          if (aktif) router.replace("/login");
+          if (aktif) router.replace("/");
           return;
         }
 
@@ -224,7 +224,7 @@ export default function ProfilSellerPage() {
 
       if (authError || !authData.user) {
         setError("Sesi login berakhir. Silakan masuk kembali.");
-        router.replace("/login");
+        router.replace("/");
         return;
       }
 
@@ -276,7 +276,7 @@ export default function ProfilSellerPage() {
     setError("");
     setSuccess("");
 
-    const profileUrl = `${window.location.origin}/seller/detail-profile?id=${profil.id}`;
+    const profileUrl = `${window.location.origin}/seller/profile/detail-profil?id=${profil.id}`;
 
     try {
       if (navigator.share) {
@@ -315,7 +315,7 @@ export default function ProfilSellerPage() {
         return;
       }
 
-      router.replace("/login");
+      router.replace("/");
       router.refresh();
     } catch (err) {
       console.error("Logout error:", err);

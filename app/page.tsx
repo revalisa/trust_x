@@ -242,9 +242,7 @@ export default function LandingPage() {
 
         {/* HERO */}
 
-        <section className="relative overflow-hidden rounded-[28px] bg-linier-to-br from-[#162350] via-[#22346b] to-[#3c56ad] px-6 py-8 text-white shadow-xl shadow-[#162350]/10 sm:px-10 sm:py-11 lg:px-12">
-
-          {/* Decorative circles */}
+        <section className="relative overflow-hidden rounded-[28px] bg-linear-to-br from-[#162350] via-[#22346b] to-[#3c56ad] px-6 py-8 text-white shadow-xl shadow-[#162350]/10 sm:px-10 sm:py-11 lg:px-12">
 
           <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full border border-white/10" />
 
