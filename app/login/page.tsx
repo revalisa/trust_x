@@ -273,7 +273,6 @@ export default function LoginPage() {
 
 {/* <<<<<<< HEAD */}
         {/* JUDUL */}
- login
         <h1 className="text-center text-3xl font-bold text-[#162350]">
           Masuk ke Akun
         </h1>

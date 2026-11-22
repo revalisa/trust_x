@@ -81,7 +81,7 @@ export default function DetailProfileSellerPage() {
     <main className="min-h-screen bg-[#f4f6fa] pb-8 text-[#172033]">
       {/* HEADER */}
       <header className="sticky top-0 z-30 border-b border-[#e3e7f0] bg-white">
-        <div className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6">
           <button
             type="button"
             onClick={() => router.back()}
@@ -234,9 +234,9 @@ export default function DetailProfileSellerPage() {
           <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
             {/* PROFIL TOKO */}
             <section className="overflow-hidden rounded-2xl border border-[#e3e7f0] bg-white shadow-sm">
-              <div className="bg-gradient-to-r from-[#162350] to-[#344d91] px-5 py-7 text-white sm:px-7">
+              <div className=" from-[#162350] to-[#344d91] px-5 py-7 text-white sm:px-7">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl font-extrabold ring-1 ring-white/20">
+                  <div className="flex hw-[68px]-[68px]  shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl font-extrabold ring-1 ring-white/20">
                     {toko.nama_toko?.charAt(0)?.toUpperCase() || "S"}
                   </div>
 
@@ -244,7 +244,7 @@ export default function DetailProfileSellerPage() {
                     <p className="text-xs font-medium text-white/65">
                       PROFIL TOKO
                     </p>
-                    <h2 className="mt-1 break-words text-xl font-extrabold sm:text-2xl">
+                    <h2 className="mt-1 sbreak-word text-xl font-extrabold sm:text-2xl">
                       {toko.nama_toko}
                     </h2>
                     <p className="mt-1 text-sm text-white/70">

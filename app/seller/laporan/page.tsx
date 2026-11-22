@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -58,6 +57,7 @@ export default function LaporanSellerPage() {
   const router = useRouter();
 
   const [laporan, setLaporan] = useState<Laporan[]>([]);
+  const [namaPemilik, setNamaPemilik] = useState("");
   const [filter, setFilter] = useState<FilterLaporan>("all");
   const [selected, setSelected] = useState<Laporan | null>(null);
 
@@ -65,6 +65,7 @@ export default function LaporanSellerPage() {
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
 
+  // Memuat profil seller dan laporan
   const loadLaporan = useCallback(async () => {
     try {
       const supabase = createClient();
@@ -79,11 +80,14 @@ export default function LaporanSellerPage() {
         return;
       }
 
+      const userId = userData.user.id;
+
+      // Cek role pengguna
       const { data: profil, error: profilError } = await supabase
         .from("profil_pengguna")
-      .select("jenis_akun")
-      .eq("id", userData.user.id)
-      .maybeSingle();
+        .select("nama_lengkap, jenis_akun")
+        .eq("id", userId)
+        .maybeSingle();
 
       if (profilError) throw profilError;
 
@@ -92,12 +96,32 @@ export default function LaporanSellerPage() {
         return;
       }
 
+      // Ambil nama pemilik toko
+      const { data: profilToko, error: tokoError } = await supabase
+        .from("profil_toko")
+        .select("nama_lengkap, nama_toko")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (tokoError) {
+        console.error("Gagal mengambil profil toko:", tokoError);
+      }
+
+      // Gunakan nama dari profil toko, fallback ke profil pengguna
+      const nama =
+        profilToko?.nama_lengkap?.trim() ||
+        profil.nama_lengkap?.trim() ||
+        "";
+
+      setNamaPemilik(nama);
+
+      // Ambil laporan untuk seller yang sedang login
       const { data, error: laporanError } = await supabase
         .from("laporan")
         .select(
           "id, pembeli_id, penjual_id, judul_laporan, kronologi, status_laporan, tanggal_dibuat, tanggal_diperbarui"
         )
-        .eq("penjual_id", userData.user.id)
+        .eq("penjual_id", userId)
         .order("tanggal_dibuat", { ascending: false });
 
       if (laporanError) throw laporanError;
@@ -119,24 +143,26 @@ export default function LaporanSellerPage() {
     let aktif = true;
 
     const mulaiMemuat = async () => {
-      await loadLaporan();
+      if (aktif) {
+        await loadLaporan();
+      }
     };
 
-    if (aktif) {
-      mulaiMemuat();
-    }
+    mulaiMemuat();
 
     return () => {
       aktif = false;
     };
   }, [loadLaporan, reloadKey]);
 
+  // Memuat ulang laporan
   const retryLoad = () => {
     setError("");
     setLoading(true);
     setReloadKey((prev) => prev + 1);
   };
 
+  // Statistik laporan
   const statistik = useMemo(() => {
     return {
       total: laporan.length,
@@ -154,6 +180,7 @@ export default function LaporanSellerPage() {
     };
   }, [laporan]);
 
+  // Filter laporan
   const filteredReports = useMemo(() => {
     switch (filter) {
       case "response":
@@ -181,6 +208,9 @@ export default function LaporanSellerPage() {
     { id: "review", label: "Ditinjau" },
     { id: "done", label: "Selesai" },
   ];
+
+  // Huruf awal nama pemilik untuk ikon profil
+  const initialProfil = namaPemilik.trim().charAt(0).toUpperCase() || "S";
 
   // Tutup modal menggunakan tombol Escape
   useEffect(() => {
@@ -245,6 +275,7 @@ export default function LaporanSellerPage() {
           </nav>
 
           <div className="flex items-center gap-2">
+            {/* NOTIFIKASI */}
             <button
               type="button"
               aria-label="Notifikasi"
@@ -262,12 +293,14 @@ export default function LaporanSellerPage() {
               </svg>
             </button>
 
+            {/* PROFIL SELLER */}
             <Link
-              href="/seller/profil"
-              aria-label="Profil"
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#162350] text-sm font-bold text-white"
+            href="/seller/profil"
+            aria-label={`Profil ${namaPemilik || "Seller"}`}
+            title={namaPemilik || "Profil Seller"}
+            className="group flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-linier-to-br from-[#4f6bd8] to-[#162350] text-sm font-extrabold uppercase text-white shadow-md ring-1 ring-[#4f6bd8]/20 transition-all duration-200 hover:scale-105 hover:shadow-lg hover:ring-[#4f6bd8]/50"
             >
-              P
+            {initialProfil}
             </Link>
           </div>
         </header>
