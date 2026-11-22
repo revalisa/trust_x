@@ -585,7 +585,7 @@ export default function ProfilPage() {
 
                   {/* STORE IDENTITY */}
                   <div className="min-w-0 pb-1">
-                    <h2 className="break-word text-xl font-extrabold tracking-tight text-[#162350] sm:text-2xl">
+                    <h2 className="wrap-break-word text-xl font-extrabold tracking-tight text-[#162350] sm:text-2xl">
                       {profil.nama_toko || "Toko TrustX"}
                     </h2>
                     <p className="mt-1 break-all text-xs text-[#667089] sm:text-sm">
@@ -1177,7 +1177,7 @@ function InfoCard({
       <p className="text-xs font-semibold text-[#7b879d]">{label}</p>
       <p
         className={`mt-1.5 text-sm font-bold text-[#172033] ${
-          multiline ? "whitespace-pre-wrap break-word leading-6" : "break-all"
+          multiline ? "whitespace-pre-wrap wrap-break-word leading-6" : "break-all"
         }`}
       >
         {value || "-"}

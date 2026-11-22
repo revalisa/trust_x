@@ -264,7 +264,7 @@ export default function SellerPage() {
               </p>
 
               {/* USER NAME */}
-              <h1 className="mt-2 break-word text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
+              <h1 className="mt-2 wrap-break-word text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
                 {nama}
               </h1>
 
