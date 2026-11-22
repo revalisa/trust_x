@@ -148,7 +148,7 @@ export default function ProfilPage() {
 
   // AVATAR INITIAL
   const initial =
-    profil?.nama_lengkap?.trim().charAt(0).toUpperCase() || "T";
+    profil?.nama_toko?.trim().charAt(0).toUpperCase() || "T";
 
   // INPUT HANDLER
   function handleChange(
@@ -403,92 +403,99 @@ export default function ProfilPage() {
                 TrustX
               </h1>
               <p className="text-[11px] font-medium text-[#8992a7]">
-                Seller Workspace
+                Buyer Workspace
               </p>
             </div>
           </Link>
-
-          {/* DESKTOP NAVIGATION */}
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-2 md:flex">
             <Link
               href="/seller"
-              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[#68748c] transition hover:bg-[#f4f6fa] hover:text-[#162350]"
-            >
-              Beranda
-            </Link>
-            <Link
-              href="/seller/laporan"
-              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[#68748c] transition hover:bg-[#f4f6fa] hover:text-[#162350]"
-            >
-              Laporan
-            </Link>
-            <Link
-              href="/seller/profil"
-              aria-current="page"
-              className="rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#405ec7]"
-            >
-              Akun Toko
-            </Link>
-          </nav>
-
-          {/* HEADER ACTIONS */}
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            {/* NOTIFICATION */}
-            <button
-              type="button"
-              aria-label="Notifikasi"
-              title="Notifikasi"
-              className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#e8ecf4] bg-white text-[#53617d] transition hover:border-[#cdd7f5] hover:bg-[#f5f7ff] hover:text-[#4f6bd8]"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#4f6bd8]"
             >
               <svg
+                className="h-4.5 w-4.5"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5 transition-transform duration-200 group-hover:-rotate-6 group-hover:scale-110"
+              >
+                <path d="m3 10 9-7 9 7" />
+                <path d="M5 9v11h14V9M9 20v-6h6v6" />
+              </svg>
+              Beranda
+            </Link>
+
+            <Link
+              href="/seller/laporan"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#647089] transition hover:bg-[#f1f4fa] hover:text-[#162350]"
+            >
+              <svg
+                className="h-4.5 w-4.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6M8 13h8M8 17h6" />
+              </svg>
+              Laporan
+            </Link>
+
+            <Link
+              href="/seller/profil"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#4f6bd8]"
+            >
+              <svg
+                className="h-4.5 w-4.5"   
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <path d="M5 21a7 7 0 0 1 14 0" />
+              </svg>
+              Profil
+            </Link>
+          </nav>
+
+          {/* HEADER ACTION */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              aria-label="Notifikasi"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e3e7f0] bg-white text-[#647089] transition hover:bg-[#f4f6fa]"
+            >
+              <svg
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
               >
                 <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
                 <path d="M10 21h4" />
               </svg>
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-[#4f6bd8]" />
             </button>
 
-            {/* PROFILE AVATAR */}
             <Link
               href="/seller/profil"
-              aria-label={`Profil ${profil.nama_lengkap}`}
-              title={profil.nama_lengkap}
-              className="group flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-white bg-linear-to-br from-[#4f6bd8] to-[#162350] text-sm font-extrabold uppercase text-white shadow-md ring-1 ring-[#4f6bd8]/20 transition-all duration-200 hover:scale-105 hover:shadow-lg hover:ring-[#4f6bd8]/50"
+              aria-label="Profil penjual"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#cbcfdf] to-[#758ad5] text-sm font-extrabold uppercase text-white shadow-md ring-2 ring-white"
             >
-              {initial}
+              {initial.slice(0, 1) || "S"}
             </Link>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="hidden rounded-lg px-3 py-2 text-xs font-bold text-[#647089] transition hover:bg-red-50 hover:text-red-600 sm:block"
+            >
+              Keluar
+            </button>
           </div>
         </div>
-
-        {/* MOBILE NAV */}
-        <nav className="flex border-t border-[#edf0f6] px-3 py-2 md:hidden">
-          <Link
-            href="/seller"
-            className="flex-1 rounded-lg py-2 text-center text-xs font-semibold text-[#68748c] transition hover:bg-[#f4f6fa]"
-          >
-            Beranda
-          </Link>
-          <Link
-            href="/seller/laporan"
-            className="flex-1 rounded-lg py-2 text-center text-xs font-semibold text-[#68748c] transition hover:bg-[#f4f6fa]"
-          >
-            Laporan
-          </Link>
-          <Link
-            href="/seller/profil"
-            aria-current="page"
-            className="flex-1 rounded-lg bg-[#eef2ff] py-2 text-center text-xs font-bold text-[#405ec7]"
-          >
-            Akun Toko
-          </Link>
-        </nav>
       </header>
 
       {/* PAGE CONTENT */}
@@ -1149,18 +1156,72 @@ export default function ProfilPage() {
               dapat mengenali toko kamu.
             </p>
           </div>
-
-          {/* FOOTER */}
-          <footer className="mt-8 border-t border-[#e3e7f0] pt-6 text-center">
-            <p className="text-xs text-[#98a1b4]">
-              © 2026 TrustX. Cek Dulu Sebelum Transaksi.
-            </p>
-          </footer>
         </div>
+
+         {/* FOOTER */}
+        <footer className="mt-10 border-t border-[#e3e7f0] pt-6">
+          <p className="text-center text-xs text-[#98a1b4]">
+            © 2026 TrustX. Cek Dulu Sebelum Transaksi.
+          </p>
+        </footer>
+
+         {/* MOBILE NAV */}
+              <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-3 border-t border-[#e3e7f0] bg-white/95 px-3 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-lg md:hidden">
+                <Link
+                  href="/buyer"
+                  className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="m3 10 9-7 9 7" />
+                    <path d="M5 9v11h14V9M9 20v-6h6v6" />
+                  </svg>
+                  <span className="text-[10px] font-semibold">Beranda</span>
+                </Link>
+        
+                <Link
+                  href="/buyer/laporan"
+                  className="flex flex-col items-center gap-1 py-2 text-[#4f6bd8]"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 2v6h6M8 13h8M8 17h5" />
+                  </svg>
+                  <span className="text-[10px] font-bold">Laporan</span>
+                </Link>
+        
+                <Link
+                  href="/buyer/profil"
+                  className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M5 21a7 7 0 0 1 14 0" />
+                  </svg>
+                  <span className="text-[10px] font-semibold">Profil</span>
+                </Link>
+              </nav>
       </div>
     </main>
   );
-}
+};
 
 // INFORMATION CARD
 function InfoCard({

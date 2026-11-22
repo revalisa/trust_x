@@ -752,12 +752,64 @@ export default function SellerPage() {
 
         {/* FOOTER */}
         <footer className="mt-10 border-t border-[#e3e7f0] pt-6">
-          <div className="flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
-            <p className="text-xs text-[#98a1b4]">
-              © 2026 TrustX. Cek Dulu Sebelum Transaksi.
-            </p>
-          </div>
+          <p className="text-center text-xs text-[#98a1b4]">
+            © 2026 TrustX. Cek Dulu Sebelum Transaksi.
+          </p>
         </footer>
+
+         {/* MOBILE NAV */}
+              <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-3 border-t border-[#e3e7f0] bg-white/95 px-3 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-lg md:hidden">
+                <Link
+                  href="/buyer"
+                  className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="m3 10 9-7 9 7" />
+                    <path d="M5 9v11h14V9M9 20v-6h6v6" />
+                  </svg>
+                  <span className="text-[10px] font-semibold">Beranda</span>
+                </Link>
+        
+                <Link
+                  href="/buyer/laporan"
+                  className="flex flex-col items-center gap-1 py-2 text-[#4f6bd8]"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <path d="M14 2v6h6M8 13h8M8 17h5" />
+                  </svg>
+                  <span className="text-[10px] font-bold">Laporan</span>
+                </Link>
+        
+                <Link
+                  href="/buyer/profil"
+                  className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
+                >
+                  <svg
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M5 21a7 7 0 0 1 14 0" />
+                  </svg>
+                  <span className="text-[10px] font-semibold">Profil</span>
+                </Link>
+              </nav>
       </div>
     </main>
   );
