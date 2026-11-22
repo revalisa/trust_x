@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -26,6 +25,8 @@ type ProfilToko = {
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_FILES = 3;
 const MAX_WORDS = 500;
+const STORAGE_BUCKET = "bukti-laporan";
+const ALLOWED_TYPES = ["image/png", "image/jpeg"];
 
 export default function BuyerLaporPage() {
   const router = useRouter();
@@ -51,50 +52,47 @@ export default function BuyerLaporPage() {
   const [errorFiles, setErrorFiles] = useState("");
   const [errorSetuju, setErrorSetuju] = useState("");
 
-  // =========================
+  // =========================================
   // AUTH
-  // =========================
+  // =========================================
   useEffect(() => {
     let mounted = true;
 
     const checkUser = async () => {
       try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
+        const { data, error: authError } = await supabase.auth.getUser();
 
         if (!mounted) return;
 
-        if (authError || !user) {
+        if (authError || !data.user) {
           router.replace("/login");
           return;
         }
 
-        setUserId(user.id);
-      } catch {
+        setUserId(data.user.id);
+      } catch (err) {
+        console.error("AUTH CHECK ERROR:", err);
+
         if (mounted) router.replace("/login");
       } finally {
         if (mounted) setLoadingUser(false);
       }
     };
 
-    checkUser();
+    void checkUser();
 
     return () => {
       mounted = false;
     };
   }, [router, supabase]);
 
-  // =========================
+  // =========================================
   // CARI TOKO
-  // nama_toko = username toko
-  // nama_lengkap = nama pengguna
-  // =========================
+  // =========================================
   const cariTarget = async () => {
     setError("");
-    setErrorUsername("");
     setSuccess("");
+    setErrorUsername("");
     setTarget(null);
 
     const namaToko = username.trim().replace(/^@+/, "");
@@ -119,16 +117,7 @@ export default function BuyerLaporPage() {
         .maybeSingle();
 
       if (queryError) {
-        console.error("SUPABASE SEARCH ERROR:", {
-          message: queryError.message,
-          code: queryError.code,
-          details: queryError.details,
-          hint: queryError.hint,
-        });
-
-        setErrorUsername(
-          `Gagal mencari toko (${queryError.code ?? "Error"}): ${queryError.message}`
-        );
+        setErrorUsername(`Gagal mencari toko: ${queryError.message}`);
         return;
       }
 
@@ -145,16 +134,16 @@ export default function BuyerLaporPage() {
       setTarget(data as ProfilToko);
       setUsername(namaToko);
     } catch (err) {
-      console.error("Kesalahan mencari toko:", err);
+      console.error("CARI TOKO ERROR:", err);
       setErrorUsername("Terjadi kesalahan saat mencari username toko.");
     } finally {
       setLoadingTarget(false);
     }
   };
 
-  // =========================
+  // =========================================
   // KRONOLOGI
-  // =========================
+  // =========================================
   const handleKronologi = (e: ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     const words = value.trim() ? value.trim().split(/\s+/) : [];
@@ -172,12 +161,13 @@ export default function BuyerLaporPage() {
     ? kronologi.trim().split(/\s+/).length
     : 0;
 
-  // =========================
-  // VALIDASI FILE
-  // =========================
+  // =========================================
+  // VALIDASI FILE GAMBAR
+  // =========================================
   const handleFiles = (e: ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
     e.target.value = "";
+
     setErrorFiles("");
 
     if (selected.length === 0) return;
@@ -185,23 +175,23 @@ export default function BuyerLaporPage() {
     const gabungan = [...files, ...selected];
 
     if (gabungan.length > MAX_FILES) {
-      setErrorFiles(`Maksimal hanya ${MAX_FILES} berkas bukti.`);
+      setErrorFiles(`Maksimal hanya ${MAX_FILES} gambar bukti.`);
       return;
     }
 
     for (const file of selected) {
-      if (!["image/png", "image/jpeg"].includes(file.type)) {
-        setErrorFiles("File hanya boleh berupa PNG atau JPG.");
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setErrorFiles(`${file.name}: file hanya boleh berupa PNG atau JPG.`);
+        return;
+      }
+
+      if (file.size === 0) {
+        setErrorFiles(`${file.name}: file kosong.`);
         return;
       }
 
       if (file.size > MAX_FILE_SIZE) {
         setErrorFiles(`${file.name} melebihi ukuran maksimal 5 MB.`);
-        return;
-      }
-
-      if (file.size === 0) {
-        setErrorFiles(`${file.name} kosong dan tidak dapat diunggah.`);
         return;
       }
     }
@@ -214,9 +204,9 @@ export default function BuyerLaporPage() {
     setErrorFiles("");
   };
 
-  // =========================
+  // =========================================
   // SUBMIT LAPORAN
-  // =========================
+  // =========================================
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -245,18 +235,24 @@ export default function BuyerLaporPage() {
     }
 
     if (files.length === 0) {
-      setErrorFiles("Minimal unggah 1 bukti pendukung.");
+      setErrorFiles("Minimal unggah 1 gambar bukti pendukung.");
       valid = false;
     }
 
     if (files.length > MAX_FILES) {
-      setErrorFiles(`Maksimal hanya ${MAX_FILES} berkas bukti.`);
+      setErrorFiles(`Maksimal hanya ${MAX_FILES} gambar bukti.`);
       valid = false;
     }
 
     for (const file of files) {
-      if (!["image/png", "image/jpeg"].includes(file.type)) {
-        setErrorFiles("File hanya boleh berupa PNG atau JPG.");
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setErrorFiles(`${file.name}: format gambar tidak valid.`);
+        valid = false;
+        break;
+      }
+
+      if (file.size === 0) {
+        setErrorFiles(`${file.name}: file kosong.`);
         valid = false;
         break;
       }
@@ -277,96 +273,166 @@ export default function BuyerLaporPage() {
 
     setSubmitting(true);
 
+    // ID laporan yang berhasil disimpan
     let laporanId = "";
+
+    // File yang berhasil upload, untuk cleanup jika diperlukan
     const uploadedPaths: string[] = [];
 
     try {
-      // Verifikasi sesi terbaru
+      // =================================
+      // 1. VALIDASI SESSION
+      // =================================
       const {
-        data: { user },
-        error: authError,
+        data: sessionData,
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      const {
+        data: userData,
+        error: userError,
       } = await supabase.auth.getUser();
 
-      if (authError || !user || user.id !== userId) {
-        throw new Error("Sesi login tidak valid. Silakan login ulang.");
+      const session = sessionData.session;
+      const user = userData.user;
+
+      if (sessionError || userError || !session || !user) {
+        throw new Error("Session tidak valid. Silakan login ulang.");
       }
 
-      // =========================
-      // 1. SIMPAN LAPORAN
-      // =========================
-      const namaToko = target.nama_toko || "Toko";
+      if (!session.access_token) {
+        throw new Error("Access token tidak ditemukan. Silakan login ulang.");
+      }
+
+      if (session.user.id !== user.id || user.id !== userId) {
+        throw new Error("ID user tidak cocok dengan session login.");
+      }
+
+      // =================================
+      // 2. VALIDASI ULANG TOKO
+      // =================================
+      const { data: tokoValid, error: tokoError } = await supabase
+        .from("profil_toko")
+        .select("id, nama_lengkap, nama_toko, nomor_telepon, email")
+        .eq("id", target.id)
+        .eq("nama_toko", target.nama_toko)
+        .maybeSingle();
+
+      if (tokoError) {
+        throw new Error("Gagal memverifikasi akun toko. Silakan cari ulang.");
+      }
+
+      if (!tokoValid) {
+        throw new Error("Akun toko tidak ditemukan. Silakan cari ulang.");
+      }
+
+      if (tokoValid.id === user.id) {
+        throw new Error("Kamu tidak dapat melaporkan toko milik sendiri.");
+      }
+
+      // =================================
+      // 3. INSERT LAPORAN
+      // =================================
+      const namaToko = tokoValid.nama_toko || "Toko";
 
       const judul =
         jenis === "scam"
           ? `Laporan dugaan penipuan - @${namaToko}`
           : `Rekomendasi transaksi aman - @${namaToko}`;
 
-      const { data: laporanBaru, error: laporanError } = await supabase
+      const payloadLaporan = {
+        pembeli_id: user.id,
+        penjual_id: tokoValid.id,
+        judul_laporan: judul,
+        kronologi: kronologi.trim(),
+        jenis_laporan: jenis,
+        status_laporan: "menunggu",
+      };
+
+      const {
+        data: laporanBaru,
+        error: laporanError,
+      } = await supabase
         .from("laporan")
-        .insert({
-          pembeli_id: user.id,
-          penjual_id: target.id,
-          judul_laporan: judul,
-          kronologi: kronologi.trim(),
-          jenis_laporan: jenis,
-          status_laporan: "menunggu",
-        })
+        .insert(payloadLaporan)
         .select("id")
         .single();
 
-      if (laporanError || !laporanBaru) {
-        throw new Error(
-          laporanError?.message || "Laporan gagal disimpan ke database."
-        );
+      if (laporanError) {
+        console.error("INSERT LAPORAN ERROR:", laporanError);
+
+        if (laporanError.code === "42501") {
+          throw new Error(
+            "Database menolak laporan karena kebijakan keamanan RLS."
+          );
+        }
+
+        throw new Error(`Gagal menyimpan laporan: ${laporanError.message}`);
+      }
+
+      if (!laporanBaru?.id) {
+        throw new Error("Database tidak mengembalikan ID laporan.");
       }
 
       laporanId = laporanBaru.id;
+      // =================================
+      // 4. UPLOAD GAMBAR KE STORAGE
+      // =================================
+      const metadataBukti: {
+        laporan_id: string;
+        file_path: string;
+        file_name: string;
+      }[] = [];
 
-      // =========================
-      // 2. UPLOAD BUKTI
-      // =========================
       for (const file of files) {
-        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-        const fileName = `${crypto.randomUUID()}.${ext}`;
-        const filePath = `${user.id}/${laporanId}/${fileName}`;
+        const extension = file.type === "image/png" ? "png" : "jpg";
+
+        const filePath = `${user.id}/${laporanId}/${crypto.randomUUID()}.${extension}`;
 
         const { error: uploadError } = await supabase.storage
-          .from("bukti-laporan")
+          .from(STORAGE_BUCKET)
           .upload(filePath, file, {
+            cacheControl: "3600",
             contentType: file.type,
             upsert: false,
           });
 
         if (uploadError) {
-          throw new Error(`Upload ${file.name} gagal: ${uploadError.message}`);
+          console.error("UPLOAD BUKTI ERROR:", uploadError);
+          throw new Error(
+            `Laporan sudah tersimpan, tetapi gambar "${file.name}" gagal diunggah: ${uploadError.message}`
+          );
         }
 
         uploadedPaths.push(filePath);
 
-        // =========================
-        // 3. SIMPAN METADATA
-        // =========================
-        const { error: metadataError } = await supabase
-          .from("bukti_laporan")
-          .insert({
-            laporan_id: laporanId,
-            file_path: filePath,
-            file_name: file.name,
-            mime_type: file.type,
-            file_size: file.size,
-          });
-
-        if (metadataError) {
-          throw new Error(
-            `Metadata bukti ${file.name} gagal disimpan: ${metadataError.message}`
-          );
-        }
+        metadataBukti.push({
+          laporan_id: laporanId,
+          file_path: filePath,
+          file_name: file.name,
+        });
       }
 
-      // =========================
-      // SUKSES
-      // =========================
-      setSuccess("Laporan berhasil dikirim dan menunggu proses peninjauan.");
+      // =================================
+      // 5. INSERT METADATA BUKTI
+      // Sesuai tabel bukti_laporan
+      // =================================
+      const { error: metadataError } = await supabase
+        .from("bukti_laporan")
+        .insert(metadataBukti);
+
+      if (metadataError) {
+        console.error("INSERT METADATA BUKTI ERROR:", metadataError);
+
+        throw new Error(
+          `Laporan berhasil tersimpan, tetapi data gambar gagal disimpan: ${metadataError.message}`
+        );
+      }
+
+      // =================================
+      // 6. SUKSES
+      // =================================
+      setSuccess("Laporan dan gambar bukti berhasil dikirim.");
 
       setUsername("");
       setTarget(null);
@@ -375,50 +441,58 @@ export default function BuyerLaporPage() {
       setFiles([]);
       setSetuju(false);
 
-      setTimeout(() => {
-        router.push("/buyer/laporan");
-        router.refresh();
-      }, 1500);
+      // Arahkan ke halaman laporan setelah berhasil
+      router.replace("/buyer/laporan");
+      router.refresh();
     } catch (submitError) {
       console.error("SUBMIT LAPORAN ERROR:", submitError);
 
-      // =========================
-      // CLEANUP JIKA GAGAL
-      // =========================
-      if (uploadedPaths.length > 0) {
+      const pesanError =
+        submitError instanceof Error
+          ? submitError.message
+          : "Terjadi kesalahan saat mengirim laporan.";
+
+      // =================================
+      // LAPORAN SUDAH TERSIMPAN?
+      // Jangan hapus laporan yang sudah berhasil dibuat.
+      // Agar user tidak kehilangan laporan/terduplikasi.
+      // =================================
+      if (laporanId) {
+        setSuccess(
+          "Laporan telah tersimpan di database, tetapi proses bukti belum lengkap."
+        );
+
+        setError(pesanError);
+
+        // Arahkan ke daftar laporan agar tidak submit ulang
+        router.replace("/buyer/laporan");
+        router.refresh();
+      } else {
+        setError(pesanError);
+      }
+
+      // =================================
+      // CLEANUP FILE STORAGE (BEST EFFORT)
+      // Hanya menghapus file yang berhasil upload
+      // jika laporan belum berhasil dibuat.
+      // =================================
+      if (!laporanId && uploadedPaths.length > 0) {
         const { error: removeError } = await supabase.storage
-          .from("bukti-laporan")
+          .from(STORAGE_BUCKET)
           .remove(uploadedPaths);
 
         if (removeError) {
-          console.error("GAGAL MEMBERSIHKAN FILE STORAGE:", removeError);
+          console.error("CLEANUP STORAGE ERROR:", removeError);
         }
       }
-
-      if (laporanId) {
-        const { error: deleteReportError } = await supabase
-          .from("laporan")
-          .delete()
-          .eq("id", laporanId);
-
-        if (deleteReportError) {
-          console.error("GAGAL MEMBERSIHKAN DATA LAPORAN:", deleteReportError);
-        }
-      }
-
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Terjadi kesalahan saat mengirim laporan."
-      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  // =========================
+  // =========================================
   // LOADING
-  // =========================
+  // =========================================
   if (loadingUser) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f5f7fc] px-4">
@@ -432,9 +506,9 @@ export default function BuyerLaporPage() {
     );
   }
 
-  // =========================
+  // =========================================
   // UI
-  // =========================
+  // =========================================
   return (
     <main className="min-h-screen bg-[#f5f7fc] pb-12 text-[#172033]">
       {/* HEADER */}
@@ -516,21 +590,27 @@ export default function BuyerLaporPage() {
         <div className="mb-6 flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
           <span className="mt-0.5 text-lg">⚠</span>
           <p>
-            <strong>Ketentuan laporan:</strong> Laporan palsu atau fitnah dapat
-            diproses hukum. Lampirkan bukti riil dan tuliskan kronologi
-            berdasarkan fakta.
+            <strong>Ketentuan laporan:</strong> Laporan palsu atau fitnah
+            dapat diproses hukum. Lampirkan bukti riil dan tuliskan
+            kronologi berdasarkan fakta.
           </p>
         </div>
 
         {/* ALERT */}
         {error && (
-          <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium leading-6 text-red-700">
+          <div
+            role="alert"
+            className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium leading-6 text-red-700"
+          >
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mb-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-medium leading-6 text-green-700">
+          <div
+            role="status"
+            className="mb-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-medium leading-6 text-green-700"
+          >
             {success}
           </div>
         )}
@@ -565,19 +645,20 @@ export default function BuyerLaporPage() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        cariTarget();
+                        void cariTarget();
                       }
                     }}
                     placeholder="username_toko"
                     autoComplete="off"
-                    className="h-12 min-w-0 flex-1 bg-transparent pl-2 text-sm font-semibold outline-none placeholder:font-normal placeholder:text-[#9aa3b5]"
+                    disabled={submitting}
+                    className="h-12 min-w-0 flex-1 bg-transparent pl-2 text-sm font-semibold outline-none placeholder:font-normal placeholder:text-[#9aa3b5] disabled:opacity-60"
                   />
                 </div>
 
                 <button
                   type="button"
-                  onClick={cariTarget}
-                  disabled={loadingTarget || !username.trim()}
+                  onClick={() => void cariTarget()}
+                  disabled={loadingTarget || submitting || !username.trim()}
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#162350] px-5 text-sm font-bold text-white transition hover:bg-[#22346b] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loadingTarget ? "Mencari..." : "Cari Akun"}
@@ -630,25 +711,20 @@ export default function BuyerLaporPage() {
                       setUsername("");
                       setErrorUsername("");
                     }}
-                    className="rounded-xl border border-[#dbe3ff] bg-white px-3 py-2 text-xs font-bold text-[#405ec7] hover:bg-blue-50"
+                    disabled={submitting}
+                    className="rounded-xl border border-[#dbe3ff] bg-white px-3 py-2 text-xs font-bold text-[#405ec7] hover:bg-blue-50 disabled:opacity-50"
                   >
                     Ganti akun
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 border-t border-[#dbe3ff] p-4 sm:grid-cols-2">
-                  <TargetInfo
-                    label="Nama Pengguna"
-                    value={target.nama_lengkap}
-                  />
+                  <TargetInfo label="Nama Pengguna" value={target.nama_lengkap} />
                   <TargetInfo
                     label="Username Toko"
                     value={target.nama_toko ? `@${target.nama_toko}` : null}
                   />
-                  <TargetInfo
-                    label="Nomor WhatsApp"
-                    value={target.nomor_telepon}
-                  />
+                  <TargetInfo label="Nomor WhatsApp" value={target.nomor_telepon} />
                   <TargetInfo label="Email" value={target.email} />
                 </div>
 
@@ -656,8 +732,8 @@ export default function BuyerLaporPage() {
                   <span className="text-lg">ⓘ</span>
                   <p>
                     <strong>Identitas terkonfirmasi.</strong> Username toko
-                    berhasil dicocokkan dengan data profil. Ini bukan jaminan
-                    reputasi atau keamanan transaksi.
+                    berhasil dicocokkan dengan data profil. Ini bukan
+                    jaminan reputasi atau keamanan transaksi.
                   </p>
                 </div>
               </div>
@@ -702,9 +778,9 @@ export default function BuyerLaporPage() {
                 htmlFor="kronologi"
                 className="mb-2 block text-sm font-semibold leading-6 text-[#40506d]"
               >
-                Jelaskan kronologi kejadian sebenarnya, konfirmasi nomor resi
-                pengiriman resmi, atau status kesepakatan secara faktual dan
-                transparan.
+                Jelaskan kronologi kejadian sebenarnya, konfirmasi nomor
+                resi pengiriman resmi, atau status kesepakatan secara
+                faktual dan transparan.
               </label>
 
               <textarea
@@ -713,8 +789,9 @@ export default function BuyerLaporPage() {
                 value={kronologi}
                 onChange={handleKronologi}
                 rows={7}
+                disabled={submitting}
                 placeholder="Tulis kronologi secara runtut (contoh: status paket, nomor resi pengiriman, kendala operasional, dan bukti komunikasi)..."
-                className="w-full resize-y rounded-2xl border border-[#e3e7f0] bg-[#f8faff] p-4 text-sm leading-6 outline-none transition placeholder:text-[#9aa3b5] focus:border-[#4f6bd8] focus:ring-4 focus:ring-blue-100"
+                className="w-full resize-y rounded-2xl border border-[#e3e7f0] bg-[#f8faff] p-4 text-sm leading-6 outline-none transition placeholder:text-[#9aa3b5] focus:border-[#4f6bd8] focus:ring-4 focus:ring-blue-100 disabled:opacity-60"
               />
 
               <div className="mt-3 flex flex-col gap-2 text-xs text-[#667089] sm:flex-row sm:items-center sm:justify-between">
@@ -747,37 +824,42 @@ export default function BuyerLaporPage() {
             <SectionTitle number="4" title="Upload Bukti Pendukung" />
 
             <p className="mt-2 text-sm leading-6 text-[#667089]">
-              Screenshot percakapan, resi pengiriman, mutasi rekening, atau bukti
-              penyerahan barang.
+              Screenshot percakapan, resi pengiriman, mutasi rekening,
+              atau bukti penyerahan barang.
             </p>
 
             <label
               htmlFor="bukti"
-              className="mt-5 flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed border-[#cbd5ee] bg-[#f8faff] px-5 py-8 text-center transition hover:border-[#4f6bd8] hover:bg-blue-50"
+              className={`mt-5 flex flex-col items-center rounded-2xl border-2 border-dashed border-[#cbd5ee] bg-[#f8faff] px-5 py-8 text-center transition ${
+                submitting
+                  ? "cursor-not-allowed opacity-60"
+                  : "cursor-pointer hover:border-[#4f6bd8] hover:bg-blue-50"
+              }`}
             >
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e9efff] text-2xl">
                 ↑
               </div>
 
               <h3 className="text-base font-extrabold text-[#162350]">
-                Pilih Dokumen Bukti
+                Pilih Gambar Bukti
               </h3>
 
               <p className="mt-2 max-w-md text-sm leading-6 text-[#667089]">
-                Klik untuk memilih file dari perangkat kamu.
+                Klik untuk memilih gambar dari perangkat kamu.
               </p>
 
               <span className="mt-4 rounded-full bg-white px-3 py-2 text-xs font-bold text-[#405ec7] ring-1 ring-[#dbe3ff]">
-                Maks. 3 berkas · PNG/JPG · 5 MB per file
+                Maks. 3 gambar · PNG/JPG · 5 MB per gambar
               </span>
 
               <input
                 id="bukti"
                 name="bukti"
                 type="file"
-                accept="image/png,image/jpeg"
+                accept="image/png,image/jpeg,.png,.jpg,.jpeg"
                 multiple
                 onChange={handleFiles}
+                disabled={submitting}
                 className="sr-only"
               />
             </label>
@@ -791,13 +873,13 @@ export default function BuyerLaporPage() {
             {files.length > 0 && (
               <div className="mt-5">
                 <h3 className="mb-3 text-sm font-bold text-[#162350]">
-                  Berkas Terlampir ({files.length}/{MAX_FILES})
+                  Gambar Terlampir ({files.length}/{MAX_FILES})
                 </h3>
 
                 <div className="space-y-2">
                   {files.map((file, index) => (
                     <div
-                      key={`${file.name}-${index}`}
+                      key={`${file.name}-${file.size}-${index}`}
                       className="flex items-center gap-3 rounded-xl border border-[#e3e7f0] bg-white p-3"
                     >
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-lg">
@@ -848,10 +930,10 @@ export default function BuyerLaporPage() {
                 </span>
 
                 <span className="mt-1 block text-sm leading-6 text-[#667089]">
-                  Saya menyatakan dengan sungguh-sungguh bahwa data, kronologi,
-                  dan dokumen yang saya kirimkan adalah asli berdasarkan transaksi
-                  nyata. Saya memahami penyalahgunaan dokumen palsu dapat diproses
-                  hukum.
+                  Saya menyatakan dengan sungguh-sungguh bahwa data,
+                  kronologi, dan dokumen yang saya kirimkan adalah asli
+                  berdasarkan transaksi nyata. Saya memahami penyalahgunaan
+                  dokumen palsu dapat diproses hukum.
                 </span>
               </span>
             </label>
@@ -867,13 +949,13 @@ export default function BuyerLaporPage() {
           <div className="pb-6">
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || loadingUser}
               className="flex w-full items-center justify-center gap-3 rounded-2xl bg-linear-to-r from-[#162350] to-[#4f6bd8] px-6 py-4 text-sm font-extrabold text-white shadow-lg shadow-blue-900/10 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? (
                 <>
                   <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Mengirim Laporan...
+                  Mengirim Laporan dan Bukti...
                 </>
               ) : (
                 <>Kirim Laporan →</>
@@ -881,8 +963,8 @@ export default function BuyerLaporPage() {
             </button>
 
             <p className="mt-3 text-center text-xs leading-5 text-[#667089]">
-              Laporan akan ditinjau oleh tim TrustX. Pastikan informasi dan bukti
-              sudah benar sebelum dikirim.
+              Laporan akan ditinjau oleh tim TrustX. Pastikan informasi
+              dan bukti sudah benar sebelum dikirim.
             </p>
           </div>
         </form>
@@ -894,7 +976,6 @@ export default function BuyerLaporPage() {
 // ===================================
 // COMPONENTS
 // ===================================
-
 function SectionTitle({
   number,
   title,

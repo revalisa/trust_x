@@ -20,6 +20,15 @@ type Laporan = {
   tanggal_diperbarui: string | null;
 };
 
+type BuktiLaporan = {
+  id: string;
+  laporan_id: string;
+  file_name: string | null;
+  file_path: string | null;
+  tanggal_dibuat: string;
+  signed_url: string | null;
+};
+
 type FilterLaporan = "all" | "menunggu" | "ditinjau" | "selesai";
 
 const statusConfig: Record<
@@ -82,61 +91,135 @@ export default function BuyerLaporanPage() {
 
   const [laporan, setLaporan] = useState<Laporan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [buktiMap, setBuktiMap] = useState<Record<string, BuktiLaporan[]>>({});
+  const [loadingBukti, setLoadingBukti] = useState(false);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<FilterLaporan>("all");
   const [selectedReport, setSelectedReport] = useState<Laporan | null>(null);
   const [nama, setNama] = useState("");
 
   const loadLaporan = useCallback(async () => {
-    setLoading(true);
-    setError("");
+  setLoading(true);
+  setError("");
+  setBuktiMap({});
 
-    try {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
+  try {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-      if (authError || !user) {
-        router.replace("/");
-        return;
-      }
+    if (authError || !user) {
+      router.replace("/");
+      return;
+    }
 
-      const { data: profile, error: profileError } = await supabase
-        .from("profil_pengguna")
-        .select("nama_lengkap, jenis_akun")
-        .eq("id", user.id)
-        .maybeSingle();
+    const { data: profile, error: profileError } = await supabase
+      .from("profil_pengguna")
+      .select("nama_lengkap, jenis_akun")
+      .eq("id", user.id)
+      .maybeSingle();
 
-      if (profileError) throw profileError;
+    if (profileError) throw profileError;
 
-      if (profile?.jenis_akun !== "buyer") {
-        router.replace(
-          profile?.jenis_akun === "seller" ? "/seller" : "/login"
-        );
-        return;
-      }
+    if (profile?.jenis_akun !== "buyer") {
+      router.replace(
+        profile?.jenis_akun === "seller" ? "/seller" : "/login"
+      );
+      return;
+    }
 
-      setNama(profile.nama_lengkap || "Pembeli");
+    setNama(profile?.nama_lengkap || "Pembeli");
 
-      // Ambil laporan komunitas, bukan hanya laporan milik akun login.
-      const { data, error: laporanError } = await supabase
-        .from("laporan")
+    // 1. Ambil seluruh laporan komunitas
+    const { data: dataLaporan, error: laporanError } = await supabase
+      .from("laporan")
       .select(
         "id, pembeli_id, penjual_id, judul_laporan, kronologi, status_laporan, tanggal_dibuat, tanggal_diperbarui"
       )
       .order("tanggal_dibuat", { ascending: false });
 
-      if (laporanError) throw laporanError;
+    if (laporanError) throw laporanError;
 
-      setLaporan((data as Laporan[]) || []);
-    } catch (err) {
-      console.error("Gagal mengambil laporan:", err);
-      setError("Data laporan gagal dimuat. Silakan coba kembali.");
-    } finally {
-      setLoading(false);
+    const daftarLaporan = (dataLaporan || []) as Laporan[];
+
+    setLaporan(daftarLaporan);
+
+    // Jika belum ada laporan, tidak perlu mengambil bukti
+    if (daftarLaporan.length === 0) {
+      setBuktiMap({});
+      return;
     }
-  }, [supabase, router]);
+
+    setLoadingBukti(true);
+
+    // 2. Ambil bukti berdasarkan ID laporan
+    const laporanIds = daftarLaporan.map((item) => item.id);
+
+    const { data: dataBukti, error: buktiError } = await supabase
+      .from("bukti_laporan")
+      .select("id, laporan_id, file_name, file_path, tanggal_dibuat")
+      .in("laporan_id", laporanIds)
+      .order("tanggal_dibuat", { ascending: false });
+
+    if (buktiError) {
+      console.error("GAGAL MENGAMBIL METADATA BUKTI:", buktiError);
+      // Laporan tetap ditampilkan meskipun bukti gagal diambil.
+      setBuktiMap({});
+      return;
+    }
+
+    const daftarBukti = dataBukti || [];
+
+    // 3. Buat signed URL dari private bucket
+    const buktiDenganUrl = await Promise.all(
+      daftarBukti.map(async (bukti) => {
+        if (!bukti.file_path) {
+          return {
+            ...bukti,
+            signed_url: null,
+          } as BuktiLaporan;
+        }
+
+        const { data: signedData, error: signedError } =
+          await supabase.storage
+            .from("bukti-laporan")
+            .createSignedUrl(bukti.file_path, 3600);
+
+        if (signedError) {
+          console.error(
+            `GAGAL MEMBUAT SIGNED URL ${bukti.file_name}:`,
+            signedError
+          );
+        }
+
+        return {
+          ...bukti,
+          signed_url: signedData?.signedUrl || null,
+        } as BuktiLaporan;
+      })
+    );
+
+    // 4. Kelompokkan bukti berdasarkan laporan_id
+    const grouped: Record<string, BuktiLaporan[]> = {};
+
+    for (const bukti of buktiDenganUrl) {
+      if (!grouped[bukti.laporan_id]) {
+        grouped[bukti.laporan_id] = [];
+      }
+
+      grouped[bukti.laporan_id].push(bukti);
+    }
+
+    setBuktiMap(grouped);
+  } catch (err) {
+    console.error("GAGAL MENGAMBIL LAPORAN:", err);
+    setError("Data laporan gagal dimuat. Silakan coba kembali.");
+  } finally {
+    setLoadingBukti(false);
+    setLoading(false);
+  }
+}, [supabase, router]);
 
   useEffect(() => {
   let cancelled = false;
@@ -861,11 +944,99 @@ export default function BuyerLaporanPage() {
                 <span className="text-[11px] font-semibold text-[#8a94a8]">
                   Bukti Terlampir
                 </span>
+
                 <p className="mt-1 text-sm font-bold text-[#162350]">
-                  Tidak tersedia pada data laporan
+                  {loadingBukti
+                    ? "Memuat bukti..."
+                    : `${(buktiMap[selectedReport.id] || []).length} gambar bukti`}
                 </p>
               </div>
             </div>
+
+            {/* EVIDENCE IMAGES */}
+<div className="mt-4 rounded-2xl border border-[#e3e7f0] p-4 sm:p-5">
+  <div className="flex flex-wrap items-center justify-between gap-2">
+    <h3 className="text-sm font-extrabold text-[#162350]">
+      Bukti Transaksi
+    </h3>
+
+    <span className="rounded-lg bg-[#eef2ff] px-2.5 py-1 text-xs font-bold text-[#4f6bd8]">
+      {buktiMap[selectedReport.id]?.length || 0} File
+    </span>
+  </div>
+
+  {loadingBukti ? (
+    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="h-36 animate-pulse rounded-xl bg-[#e8ecf3]"
+        />
+      ))}
+    </div>
+  ) : (buktiMap[selectedReport.id] || []).length > 0 ? (
+    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {buktiMap[selectedReport.id].map((bukti) => (
+        <div key={bukti.id} className="min-w-0">
+          {bukti.signed_url ? (
+            <a
+              href={bukti.signed_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Buka gambar ukuran penuh"
+              className="group block overflow-hidden rounded-xl border border-[#e3e7f0] bg-[#f8f9fc]"
+            >
+              <Image
+                  src={bukti.signed_url}
+                  alt={bukti.file_name || "Bukti transaksi"}
+                  width={600}
+                  height={400}
+                  unoptimized
+                  className="h-36 w-full object-cover transition duration-200 group-hover:scale-105 sm:h-44"
+                />
+            </a>
+          ) : (
+            <div className="flex h-36 items-center justify-center rounded-xl border border-red-100 bg-red-50 px-3 text-center text-xs font-semibold text-red-500">
+              Gambar gagal dimuat
+            </div>
+          )}
+
+          <p className="mt-2 truncate text-xs font-bold text-[#162350]">
+            {bukti.file_name || "Bukti transaksi"}
+          </p>
+
+          <p className="mt-1 text-[10px] text-[#8a94a8]">
+            {formatTanggal(bukti.tanggal_dibuat)}
+          </p>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div className="mt-4 rounded-xl bg-[#f8f9fc] px-4 py-6 text-center">
+      <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-[#eef2ff] text-[#4f6bd8]">
+        <svg
+          className="h-5 w-5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="3" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <path d="m21 15-5-5L5 21" />
+        </svg>
+      </div>
+
+      <p className="text-sm font-bold text-[#162350]">
+        Tidak ada bukti terlampir
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-[#667089]">
+        Belum ada gambar bukti yang tersimpan pada laporan ini.
+      </p>
+    </div>
+  )}
+</div>
 
             {/* CHRONOLOGY */}
             <div className="mt-4 rounded-2xl border border-[#e3e7f0] p-4 sm:p-5">
