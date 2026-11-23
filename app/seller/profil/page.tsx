@@ -148,7 +148,7 @@ export default function ProfilPage() {
 
   // AVATAR INITIAL
   const initial =
-    profil?.nama_toko?.trim().charAt(0).toUpperCase() || "T";
+    profil?.nama_lengkap?.trim().charAt(0).toUpperCase() || "T";
 
   // INPUT HANDLER
   function handleChange(
@@ -196,78 +196,102 @@ export default function ProfilPage() {
     setSuccess("");
   }
 
-  // SAVE PROFILE
-  async function handleSave(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+    // SAVE PROFILE
+async function handleSave(e: FormEvent<HTMLFormElement>) {
+  e.preventDefault();
 
-    if (saving || !profil) return;
+  if (saving || !profil) return;
 
-    if (!form.nama_lengkap.trim()) {
-      setError("Nama pemilik wajib diisi.");
-      return;
-    }
-
-    if (!form.nama_toko.trim()) {
-      setError("Nama toko wajib diisi.");
-      return;
-    }
-
-    setSaving(true);
-    setError("");
-    setSuccess("");
-
-    const supabase = createClient();
-
-    try {
-      const { data: authData, error: authError } =
-        await supabase.auth.getUser();
-
-      if (authError || !authData.user) {
-        setError("Sesi login berakhir. Silakan masuk kembali.");
-        router.replace("/");
-        return;
-      }
-
-      const userId = authData.user.id;
-
-      if (userId !== profil.id) {
-        setError("Kamu tidak memiliki akses mengubah profil ini.");
-        return;
-      }
-
-      const updateData = {
-        nama_lengkap: form.nama_lengkap.trim(),
-        nama_toko: form.nama_toko.trim(),
-        deskripsi_toko: form.deskripsi_toko.trim(),
-        nomor_telepon: form.nomor_telepon.trim(),
-        email: form.email.trim(),
-      };
-
-      const { data, error: updateError } = await supabase
-        .from("profil_toko")
-        .update(updateData)
-        .eq("id", userId)
-        .select(
-          "id, nama_lengkap, nama_toko, deskripsi_toko, nomor_telepon, email, tanggal_dibuat"
-        )
-        .single();
-
-      if (updateError) {
-        console.error("Update profil gagal:", updateError);
-        setError(`Profil gagal disimpan: ${updateError.message}`);
-        return;
-      }
-
-      setProfil(data as ProfilToko);
-      setEditing(false);
-      setSuccess("Profil toko berhasil diperbarui.");
-    } catch (err) {
-      console.error("Save profil error:", err);
-      setError("Terjadi kesalahan saat menyimpan profil.");
-    } finally {
-      setSaving(false);
-    }
+  if (!form.nama_lengkap.trim()) {
+    setError("Nama pemilik wajib diisi.");
+    return;
   }
+
+  if (!form.nama_toko.trim()) {
+    setError("Nama toko wajib diisi.");
+    return;
+  }
+
+  setSaving(true);
+  setError("");
+  setSuccess("");
+
+  const supabase = createClient();
+
+  try {
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser();
+
+    if (authError || !authData.user) {
+      setError("Sesi login berakhir. Silakan masuk kembali.");
+      router.replace("/");
+      return;
+    }
+
+    const userId = authData.user.id;
+
+    if (userId !== profil.id) {
+      setError("Kamu tidak memiliki akses mengubah profil ini.");
+      return;
+    }
+
+    const updateData = {
+      nama_lengkap: form.nama_lengkap.trim(),
+      nama_toko: form.nama_toko.trim(),
+      deskripsi_toko: form.deskripsi_toko.trim() || null,
+      nomor_telepon: form.nomor_telepon.trim() || null,
+      email: form.email.trim() || null,
+    };
+
+    const { error: updateError } = await supabase
+      .from("profil_toko")
+      .update(updateData)
+      .eq("id", userId);
+
+    if (updateError) {
+      console.error("Update profil gagal:", {
+        message: updateError.message,
+        code: updateError.code,
+        details: updateError.details,
+        hint: updateError.hint,
+      });
+
+      setError(`Profil gagal disimpan: ${updateError.message}`);
+      return;
+    }
+
+    // Update tampilan lokal setelah update database berhasil
+    setProfil((prev) =>
+      prev
+        ? {
+            ...prev,
+            nama_lengkap: updateData.nama_lengkap,
+            nama_toko: updateData.nama_toko,
+            deskripsi_toko: updateData.deskripsi_toko,
+            nomor_telepon: updateData.nomor_telepon,
+            email: updateData.email,
+          }
+        : prev
+    );
+
+    setForm((prev) => ({
+      ...prev,
+      nama_lengkap: updateData.nama_lengkap,
+      nama_toko: updateData.nama_toko,
+      deskripsi_toko: updateData.deskripsi_toko ?? "",
+      nomor_telepon: updateData.nomor_telepon ?? "",
+      email: updateData.email ?? "",
+    }));
+
+    setEditing(false);
+    setSuccess("Profil toko berhasil diperbarui.");
+  } catch (err) {
+    console.error("Save profil error:", err);
+    setError("Terjadi kesalahan saat menyimpan profil.");
+  } finally {
+    setSaving(false);
+  }
+}
 
   // SHARE PROFILE
   async function handleShare() {
@@ -403,14 +427,14 @@ export default function ProfilPage() {
                 TrustX
               </h1>
               <p className="text-[11px] font-medium text-[#8992a7]">
-                Buyer Workspace
+                Seller Workspace
               </p>
             </div>
           </Link>
           <nav className="hidden items-center gap-2 md:flex">
             <Link
               href="/seller"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#4f6bd8]"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#647089] transition hover:bg-[#f1f4fa] hover:text-[#162350]"
             >
               <svg
                 className="h-4.5 w-4.5"
@@ -592,6 +616,9 @@ export default function ProfilPage() {
 
                   {/* STORE IDENTITY */}
                   <div className="min-w-0 pb-1">
+                    <h1 className="wrap-break-word text-xl font-extrabold tracking-tight text-[#162350] sm:text-2xl">
+                      {profil.nama_lengkap || "Pemilik Toko"}
+                    </h1>
                     <h2 className="wrap-break-word text-xl font-extrabold tracking-tight text-[#162350] sm:text-2xl">
                       {profil.nama_toko || "Toko TrustX"}
                     </h2>
@@ -1168,9 +1195,9 @@ export default function ProfilPage() {
          {/* MOBILE NAV */}
               <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-3 border-t border-[#e3e7f0] bg-white/95 px-3 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-lg md:hidden">
                 <Link
-                  href="/buyer"
-                  className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
-                >
+                  href="/seller"
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-xs font-medium text-[#667089] transition hover:bg-[#f4f6fa]"
+  >
                   <svg
                     className="h-5 w-5"
                     viewBox="0 0 24 24"
@@ -1185,9 +1212,9 @@ export default function ProfilPage() {
                 </Link>
         
                 <Link
-                  href="/buyer/laporan"
-                  className="flex flex-col items-center gap-1 py-2 text-[#4f6bd8]"
-                >
+                  href="/seller/laporan"
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-xs font-medium text-[#667089] transition hover:bg-[#f4f6fa]"
+  >
                   <svg
                     className="h-5 w-5"
                     viewBox="0 0 24 24"
@@ -1202,9 +1229,9 @@ export default function ProfilPage() {
                 </Link>
         
                 <Link
-                  href="/buyer/profil"
-                  className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
-                >
+                  href="/seller/profil"
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl bg-[#eef2ff] px-3 py-2 text-xs font-bold text-[#4f6bd8]"
+  >
                   <svg
                     className="h-5 w-5"
                     viewBox="0 0 24 24"

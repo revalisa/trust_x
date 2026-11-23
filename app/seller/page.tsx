@@ -14,7 +14,7 @@ type SellerProfile = {
 
 type StoreProfile = {
   nama_toko: string;
-  username_toko: string | null;
+  nama_lengkap: string | null;
 };
 
 type CommunityReport = {
@@ -89,7 +89,7 @@ useEffect(() => {
       // =========================
       const { data: store, error: storeError } = await supabase
         .from("profil_toko")
-        .select("nama_toko, username_toko")
+        .select("nama_toko, nama_lengkap")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -220,7 +220,7 @@ useEffect(() => {
                 TrustX
               </h1>
               <p className="text-[11px] font-medium text-[#8992a7]">
-                Buyer Workspace
+                Seller Workspace
               </p>
             </div>
           </Link>
@@ -892,9 +892,9 @@ useEffect(() => {
          {/* MOBILE NAV */}
               <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-3 border-t border-[#e3e7f0] bg-white/95 px-3 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-lg md:hidden">
                 <Link
-                  href="/buyer"
-                  className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
-                >
+                  href="/seller"
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl bg-[#eef2ff] px-3 py-2 text-xs font-bold text-[#4f6bd8]"
+                  >
                   <svg
                     className="h-5 w-5"
                     viewBox="0 0 24 24"
@@ -909,9 +909,9 @@ useEffect(() => {
                 </Link>
         
                 <Link
-                  href="/buyer/laporan"
-                  className="flex flex-col items-center gap-1 py-2 text-[#4f6bd8]"
-                >
+                  href="/seller/laporan"
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-xs font-medium text-[#667089] transition hover:bg-[#f4f6fa]"
+  >
                   <svg
                     className="h-5 w-5"
                     viewBox="0 0 24 24"
@@ -926,9 +926,9 @@ useEffect(() => {
                 </Link>
         
                 <Link
-                  href="/buyer/profil"
-                  className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
-                >
+                  href="/seller/profil"
+                  className="flex flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-xs font-medium text-[#667089] transition hover:bg-[#f4f6fa]"
+  >
                   <svg
                     className="h-5 w-5"
                     viewBox="0 0 24 24"
