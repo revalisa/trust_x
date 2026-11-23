@@ -17,6 +17,15 @@ type StoreProfile = {
   username_toko: string | null;
 };
 
+type CommunityReport = {
+  id: string;
+  judul_laporan: string;
+  kronologi: string;
+  status_laporan: "menunggu" | "ditinjau" | "selesai" | "ditolak";
+  tanggal_dibuat: string;
+  pembeli_id: string;
+};
+
 export default function SellerPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -28,72 +37,111 @@ export default function SellerPage() {
   const [query, setQuery] = useState("");
   const [pesan, setPesan] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [laporan, setLaporan] = useState<CommunityReport[]>([]);
+  const [loadingLaporan, setLoadingLaporan] = useState(true);
 
-  useEffect(() => {
-    let aktif = true;
+  
+useEffect(() => {
+  let aktif = true;
 
-    async function loadSeller() {
-      const supabase = createClient();
+  async function loadSeller() {
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
 
-      try {
-        const {
-          data: { user },
-          error: authError,
-        } = await supabase.auth.getUser();
+      if (authError || !user) {
+        router.replace("/login");
+        return;
+      }
 
-        if (authError || !user) {
-          router.replace("/login");
-          return;
-        }
+      // =========================
+      // PROFIL PENGGUNA
+      // =========================
+      const { data: profile, error: profileError } = await supabase
+        .from("profil_pengguna")
+        .select("nama_lengkap, jenis_akun")
+        .eq("id", user.id)
+        .single();
 
-        const { data: profile, error } = await supabase
-          .from("profil_pengguna")
-          .select("nama_lengkap, jenis_akun")
-          .eq("id", user.id)
-          .single();
-
-        if (error || !profile) {
-          if (aktif) setPesan("Profil pengguna tidak ditemukan.");
-          return;
-        }
-
-        const sellerProfile = profile as SellerProfile;
-
-        if (sellerProfile.jenis_akun !== "seller") {
-          router.replace("/buyer");
-          return;
-        }
-
+      if (profileError || !profile) {
         if (aktif) {
-          setNama(sellerProfile.nama_lengkap || "Penjual");
+          setPesan("Profil pengguna tidak ditemukan.");
         }
+        return;
+      }
 
-        const { data: store } = await supabase
-          .from("profil_toko")
-          .select("nama_toko, username_toko")
-          .eq("id", user.id)
-          .maybeSingle();
+      const sellerProfile = profile as SellerProfile;
 
-        if (aktif && store) {
-          const storeProfile = store as StoreProfile;
-          setNamaToko(storeProfile.nama_toko || "");
-        }
-      } catch (error) {
-        console.error("Gagal memuat profil seller:", error);
+      // Pastikan akun adalah seller
+      if (sellerProfile.jenis_akun !== "seller") {
+        router.replace("/buyer");
+        return;
+      }
+
+      if (!aktif) return;
+
+      setNama(sellerProfile.nama_lengkap || "Penjual");
+
+      // =========================
+      // PROFIL TOKO
+      // =========================
+      const { data: store, error: storeError } = await supabase
+        .from("profil_toko")
+        .select("nama_toko, username_toko")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (storeError) {
+        console.error("Gagal mengambil profil toko:", storeError);
+      }
+
+      if (aktif && store) {
+        const storeProfile = store as StoreProfile;
+        setNamaToko(storeProfile.nama_toko || "");
+      }
+
+      // =========================
+      // FEED LAPORAN BUYER
+      // =========================
+      const { data: reports, error: reportError } = await supabase
+        .from("laporan")
+        .select(
+          "id, judul_laporan, kronologi, status_laporan, tanggal_dibuat, pembeli_id"
+        )
+        .eq("penjual_id", user.id)
+        .order("tanggal_dibuat", { ascending: false });
+
+      if (reportError) {
+        console.error("Gagal mengambil laporan buyer:", reportError);
         if (aktif) {
-          setPesan("Terjadi kesalahan saat memuat profil.");
+          setLaporan([]);
         }
-      } finally {
-        if (aktif) setLoading(false);
+      } else if (aktif) {
+        setLaporan((reports ?? []) as CommunityReport[]);
+      }
+    } catch (error) {
+      console.error("Gagal memuat halaman seller:", error);
+
+      if (aktif) {
+        setPesan("Terjadi kesalahan saat memuat halaman.");
+      }
+    } finally {
+      if (aktif) {
+        setLoading(false);
+        setLoadingLaporan(false);
       }
     }
+  }
 
-    loadSeller();
+  loadSeller();
 
-    return () => {
-      aktif = false;
-    };
-  }, [router]);
+  return () => {
+    aktif = false;
+  };
+}, [router, supabase]);
+
 
   // / ==========================================
   // LOGOUT
@@ -707,48 +755,132 @@ export default function SellerPage() {
         </section>
 
         {/* COMMUNITY FEED */}
-        <section className="mt-8">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-extrabold tracking-tight text-[#162350]">
-                Feed Laporan Komunitas
-              </h2>
-              <p className="mt-1 text-sm text-[#8a95a9]">
-                Pantau informasi dan aktivitas komunitas.
-              </p>
-            </div>
+<section className="mt-8">
+  <div className="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 className="text-xl font-extrabold tracking-tight text-[#162350]">
+        Feed Laporan Komunitas
+      </h2>
+      <p className="mt-1 text-sm text-[#8a95a9]">
+        Laporan transaksi yang dibuat buyer dan ditujukan ke tokomu.
+      </p>
+    </div>
 
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#dcefe4] bg-[#f0faf4] px-3 py-1.5 text-xs font-bold text-[#328454]">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-              Live Monitor
-            </span>
-          </div>
+    <span className="inline-flex items-center gap-2 rounded-full border border-[#dcefe4] bg-[#f0faf4] px-3 py-1.5 text-xs font-bold text-[#328454]">
+      <span className="h-2 w-2 rounded-full bg-green-500" />
+      Laporan Terbaru
+    </span>
+  </div>
 
-          <div className="mt-4 overflow-hidden rounded-[22px] border border-[#e4e9f3] bg-white shadow-sm">
-            <div className="flex flex-col items-center px-5 py-12 text-center sm:py-14">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#4f6bd8]">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  className="h-7 w-7"
-                >
-                  <path d="M4 5h16v14H4z" />
-                  <path d="M8 9h8M8 12h8M8 15h5" />
-                </svg>
+  <div className="mt-4 space-y-4">
+    {loadingLaporan ? (
+      <div className="rounded-[22px] border border-[#e4e9f3] bg-white p-10 text-center">
+        <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-[#e1e7f5] border-t-[#4f6bd8]" />
+        <p className="mt-3 text-sm text-[#8490a5]">
+          Memuat laporan buyer...
+        </p>
+      </div>
+    ) : laporan.length === 0 ? (
+      <div className="rounded-[22px] border border-[#e4e9f3] bg-white px-5 py-12 text-center shadow-sm">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef2ff] text-[#4f6bd8]">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            className="h-7 w-7"
+          >
+            <path d="M4 5h16v14H4z" />
+            <path d="M8 9h8M8 12h8M8 15h5" />
+          </svg>
+        </div>
+
+        <h3 className="mt-4 text-base font-bold text-[#263657]">
+          Belum ada laporan
+        </h3>
+
+        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#8a95a9]">
+          Laporan yang dibuat buyer untuk tokomu akan muncul di bagian ini.
+        </p>
+      </div>
+    ) : (
+      laporan.map((item) => {
+        const statusStyle =
+          item.status_laporan === "menunggu"
+            ? "border-amber-200 bg-amber-50 text-amber-700"
+            : item.status_laporan === "ditinjau"
+            ? "border-blue-200 bg-blue-50 text-blue-700"
+            : item.status_laporan === "selesai"
+            ? "border-green-200 bg-green-50 text-green-700"
+            : "border-red-200 bg-red-50 text-red-700";
+
+        const statusLabel =
+          item.status_laporan === "menunggu"
+            ? "Menunggu"
+            : item.status_laporan === "ditinjau"
+            ? "Sedang Ditinjau"
+            : item.status_laporan === "selesai"
+            ? "Selesai"
+            : "Ditolak";
+
+        return (
+            <article
+              key={item.id}
+              className="overflow-hidden rounded-[22px] border border-[#e4e9f3] bg-white shadow-sm transition hover:shadow-md"
+            >
+              <div className="p-5 sm:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-[#98a1b4]">
+                    Laporan Buyer
+                  </span>
+
+                  <span
+                    className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${statusStyle}`}
+                  >
+                    {statusLabel}
+                  </span>
+                </div>
+
+                <h3 className="mt-3 text-base font-extrabold text-[#162350] sm:text-lg">
+                  {item.judul_laporan}
+                </h3>
+
+                <p className="mt-3 whitespace-pre-line wrap-break-word text-sm leading-7 text-[#647089]">
+                  {item.kronologi}
+                </p>
+
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0f6] pt-4">
+                  <span className="text-xs text-[#98a1b4]">
+                    {new Date(item.tanggal_dibuat).toLocaleString("id-ID", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </span>
+
+                  <Link
+                    href="/seller/laporan"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#4f6bd8] transition hover:bg-[#dfe7ff]"
+                  >
+                    Lihat laporan
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      className="h-4 w-4"
+                    >
+                      <path d="M5 12h14" />
+                      <path d="m13 6 6 6-6 6" />
+                    </svg>
+                  </Link>
+                </div>
               </div>
-
-              <h3 className="mt-4 text-base font-bold text-[#263657]">
-                Feed komunitas segera hadir
-              </h3>
-              <p className="mt-2 max-w-md text-sm leading-6 text-[#8a95a9]">
-                Feed laporan akan ditampilkan di sini setelah dihubungkan
-                dengan database Supabase.
-              </p>
-            </div>
-          </div>
-        </section>
+            </article>
+          );
+        })
+      )}
+    </div>
+  </section>
 
         {/* FOOTER */}
         <footer className="mt-10 border-t border-[#e3e7f0] pt-6">
