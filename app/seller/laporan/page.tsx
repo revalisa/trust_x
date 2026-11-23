@@ -18,6 +18,10 @@ type Laporan = {
   status_laporan: StatusLaporan;
   tanggal_dibuat: string;
   tanggal_diperbarui: string | null;
+  sanggahan?: {
+    id: string;
+    status_sanggahan: string;
+  }[];
 };
 
 const STATUS_LABEL: Record<StatusLaporan, string> = {
@@ -603,30 +607,45 @@ export default function LaporanSellerPage() {
                         Detail Laporan
                       </button>
 
-                      {item.status_laporan === "menunggu" && (
-                        <Link
-                          href={`/seller/sanggahan?laporan=${item.id}`}
-                          className="inline-flex items-center justify-center rounded-xl bg-[#e3e8f9] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#bcc9f7]"
-                        >
-                          Ajukan Sanggahan
-                        </Link>
-                      )}
+                        {/* AJUKAN SANGGAHAN */}
+{item.status_laporan === "menunggu" && (
+  <button
+    type="button"
+    disabled
+    className="cursor-not-allowed rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-400"
+  >
+    Menunggu Verifikasi Tim
+  </button>
+)}
 
-                      {item.status_laporan === "ditinjau" && (
-                        <span className="inline-flex items-center rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">
-                          Sedang dalam pemeriksaan
-                        </span>
-                      )}
+{item.status_laporan === "ditinjau" && (
+  <Link
+    href={`/seller/sanggahan?laporan=${item.id}`}
+    className="inline-flex items-center justify-center rounded-xl bg-[#d4daf0] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#aebbed]"
+  >
+    Ajukan Sanggahan
+  </Link>
+)}
 
-                      {(item.status_laporan === "selesai" ||
-                        item.status_laporan === "ditolak") && (
-                        <Link
-                          href={`/seller/hasil-peninjauan?laporan=${item.id}`}
-                          className="inline-flex items-center justify-center rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#405ec7] transition hover:bg-[#e2e9ff]"
-                        >
-                          Lihat Hasil
-                        </Link>
-                      )}
+{/* STATUS PEMERIKSAAN */}
+{item.status_laporan === "ditinjau" && (
+  <span className="inline-flex items-center rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">
+    Sedang dalam pemeriksaan
+  </span>
+)}
+
+{/* LIHAT HASIL — hanya jika sudah ada sanggahan */}
+{(item.status_laporan === "selesai" ||
+  item.status_laporan === "ditolak") &&
+  item.sanggahan &&
+  item.sanggahan.length > 0 && (
+    <Link
+      href={`/seller/hasil-peninjauan?laporan=${item.id}`}
+      className="inline-flex items-center justify-center rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#405ec7] transition hover:bg-[#e2e9ff]"
+    >
+      Lihat Hasil
+    </Link>
+  )}
                     </div>
                   </article>
                 ))}
