@@ -1,15 +1,13 @@
 
 "use client";
 
-import { Suspense, useEffect, useState, type FormEvent, type ChangeEvent } from "react";
+import { Suspense, useMemo, useEffect, useState, type FormEvent, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 
 // Supabase client dibuat di luar komponen supaya stabil
-const supabase = createClient();
-
 type Laporan = {
   id: string;
   judul_laporan: string;
@@ -49,6 +47,7 @@ export default function SanggahanSellerPage() {
 
 function SanggahanSellerContent() {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const laporanParam = searchParams.get("laporan") || "";
 
@@ -139,7 +138,7 @@ function SanggahanSellerContent() {
     return () => {
       cancelled = true;
     };
-  }, [router, laporanParam]);
+}, [router, laporanParam, supabase]);
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     setError("");
