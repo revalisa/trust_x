@@ -169,12 +169,23 @@ export default function LaporanSellerPage() {
       setNamaPemilik(nama);
 
       const { data, error: laporanError } = await supabase
-        .from("laporan")
-        .select(
-          "id, pembeli_id, penjual_id, judul_laporan, kronologi, status_laporan, tanggal_dibuat, tanggal_diperbarui"
-        )
-        .eq("penjual_id", userId)
-        .order("tanggal_dibuat", { ascending: false });
+  .from("laporan")
+  .select(`
+    id,
+    pembeli_id,
+    penjual_id,
+    judul_laporan,
+    kronologi,
+    status_laporan,
+    tanggal_dibuat,
+    tanggal_diperbarui,
+    sanggahan (
+      id,
+      status_sanggahan
+    )
+  `)
+  .eq("penjual_id", userId)
+  .order("tanggal_dibuat", { ascending: false });
 
       if (laporanError) throw laporanError;
 
@@ -308,7 +319,7 @@ export default function LaporanSellerPage() {
           <nav className="hidden items-center gap-2 md:flex">
             <Link
               href="/seller"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#4f6bd8]"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#647089] transition hover:bg-[#f1f4fa] hover:text-[#162350]"
             >
               <svg
                 className="h-4.5 w-4.5"
@@ -325,7 +336,7 @@ export default function LaporanSellerPage() {
 
             <Link
               href="/seller/laporan"
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#647089] transition hover:bg-[#f1f4fa] hover:text-[#162350]"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#4f6bd8]"
             >
               <svg
                 className="h-4.5 w-4.5"
@@ -379,8 +390,9 @@ export default function LaporanSellerPage() {
 
             <Link
               href="/seller/profil"
-              aria-label="Profil penjual"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#cbcfdf] to-[#758ad5] text-sm font-extrabold uppercase text-white shadow-md ring-2 ring-white"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#4f6bd8] to-[#162350] text-sm font-extrabold text-white shadow-sm transition hover:scale-105"
+              title="Profil"
+              aria-label="Profil"
             >
               {initialProfil.slice(0, 1) || "S"}
             </Link>
@@ -607,7 +619,7 @@ export default function LaporanSellerPage() {
                         Detail Laporan
                       </button>
 
-                        {/* AJUKAN SANGGAHAN */}
+                        {/* AKSI SANGGAHAN */}
 {item.status_laporan === "menunggu" && (
   <button
     type="button"
@@ -618,21 +630,59 @@ export default function LaporanSellerPage() {
   </button>
 )}
 
-{item.status_laporan === "ditinjau" && (
+{/* BELUM ADA SANGGAHAN */}
+{item.status_laporan === "ditinjau" &&
+  (!item.sanggahan || item.sanggahan.length === 0) && (
+    <Link
+      href={`/seller/sanggahan?laporan=${item.id}`}
+      className="inline-flex items-center justify-center rounded-xl bg-[#4f6bd8] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#405ec7]"
+    >
+      Ajukan Sanggahan
+    </Link>
+  )}
+
+{/* SUDAH ADA SANGGAHAN */}
+{item.sanggahan && item.sanggahan.length > 0 && (
+  <div className="inline-flex flex-wrap items-center gap-2">
+    <span className="inline-flex items-center rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700">
+      ✓ Sanggahan Diajukan
+    </span>
+
+    <span className="inline-flex items-center rounded-xl bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700">
+      Menunggu Peninjauan
+    </span>
+  </div>
+)}
+
+{/* STATUS LAPORAN */}
+{item.status_laporan === "ditinjau" &&
+  (!item.sanggahan || item.sanggahan.length === 0) && (
+    <span className="inline-flex items-center rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">
+      Sedang dalam pemeriksaan
+    </span>
+  )}
+  {/* LIHAT SANGGAHAN */}
+{item.sanggahan && item.sanggahan.length > 0 && (
   <Link
-    href={`/seller/sanggahan?laporan=${item.id}`}
-    className="inline-flex items-center justify-center rounded-xl bg-[#d4daf0] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#aebbed]"
+    href={`/seller/detail-sanggahan?id=${item.sanggahan[0].id}`}
+    className="inline-flex items-center justify-center rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100"
   >
-    Ajukan Sanggahan
+    Lihat Sanggahan
   </Link>
 )}
 
-{/* STATUS PEMERIKSAAN */}
-{item.status_laporan === "ditinjau" && (
-  <span className="inline-flex items-center rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">
-    Sedang dalam pemeriksaan
-  </span>
-)}
+{/* LIHAT HASIL - laporan final dan memiliki sanggahan */}
+{(item.status_laporan === "selesai" ||
+  item.status_laporan === "ditolak") &&
+  item.sanggahan &&
+  item.sanggahan.length > 0 && (
+    <Link
+      href={`/seller/hasil-peninjauan?laporan=${item.id}`}
+      className="inline-flex items-center justify-center rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#405ec7] transition hover:bg-[#e2e9ff]"
+    >
+      Lihat Hasil
+    </Link>
+  )}
 
 {/* LIHAT HASIL — hanya jika sudah ada sanggahan */}
 {(item.status_laporan === "selesai" ||

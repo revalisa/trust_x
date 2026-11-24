@@ -220,7 +220,7 @@ export default function LoginPage() {
   // ==========================================
   // LOGIN GOOGLE DAN X
   // ==========================================
-  async function handleOAuth(provider: "google" | "x") {
+  async function handleOAuth(provider: "google") {
     if (loading || checkingSession) return;
 
     setMessage("");
@@ -238,9 +238,7 @@ export default function LoginPage() {
         console.error(`${provider} OAuth error:`, error.message);
 
         setMessage(
-          provider === "google"
-            ? "Gagal menghubungkan Google. Silakan coba kembali."
-            : "Gagal menghubungkan X. Silakan coba kembali."
+            "Gagal menghubungkan Google. Silakan coba kembali."
         );
 
         setLoading(false);
@@ -270,9 +268,6 @@ export default function LoginPage() {
             priority
           />
         </div>
-
-{/* <<<<<<< HEAD */}
-        {/* JUDUL */}
         <h1 className="text-center text-3xl font-bold text-[#162350]">
           Masuk ke Akun
         </h1>
@@ -417,14 +412,6 @@ export default function LoginPage() {
 
         {/* LOGIN SOSIAL */}
         <div className="socials space-y-3">
-          <button
-            type="button"
-            onClick={() => handleOAuth("x")}
-            disabled={loading || checkingSession}
-            className="btn out flex w-full justify-center rounded-lg border border-gray-300 py-3 text-sm font-semibold text-[#162350] transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? "Memproses..." : "MASUK via X"}
-          </button>
 
           <button
             type="button"

@@ -127,31 +127,6 @@ export default function DaftarPage() {
       setLoading(false);
     }
   }
-
-  // LOGIN / DAFTAR X
-  async function signInWithX() {
-    setMessage("");
-    setLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "x",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        setMessage(error.message);
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error(error);
-      setMessage("Gagal menghubungkan akun X.");
-      setLoading(false);
-    }
-  }
-
   return (
     <main className="min-h-screen bg-[#f4f6fa] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md rounded-2xl bg-white p-7 shadow-lg sm:p-9">
@@ -385,16 +360,6 @@ export default function DaftarPage() {
             className="flex w-full justify-center rounded-lg border border-gray-300 py-3 text-sm font-semibold text-[#162350] transition hover:bg-gray-50 disabled:opacity-60"
           >
             Daftar / Masuk via Google
-          </button>
-
-          {/* X */}
-          <button
-            type="button"
-            onClick={signInWithX}
-            disabled={loading}
-            className="mt-3 flex w-full justify-center rounded-lg border border-gray-300 py-3 text-sm font-semibold text-[#162350] transition hover:bg-gray-50 disabled:opacity-60"
-          >
-            Daftar / Masuk via X
           </button>
         </form>
 
