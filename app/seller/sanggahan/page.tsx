@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Suspense, useEffect, useState, type FormEvent, type ChangeEvent } from "react";
+import { useEffect, useState, type FormEvent, type ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -28,7 +28,7 @@ const alasanOptions = [
   { value: "lainnya", label: "Alasan lainnya" },
 ];
 
-function SanggahanSellerContent() {
+export default function SanggahanSellerContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const laporanParam = searchParams.get("laporan") || "";
@@ -563,24 +563,5 @@ function SanggahanSellerContent() {
         </p>
       </div>
     </main>
-  );
-}
-
-// Wrapper Suspense untuk mencegah error useSearchParams saat prerender
-export default function SanggahanSellerPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="min-h-screen bg-[#f4f6fa] px-4 py-10">
-          <div className="mx-auto max-w-3xl animate-pulse space-y-4">
-            <div className="h-8 w-48 rounded-lg bg-gray-200" />
-            <div className="h-5 w-72 rounded-lg bg-gray-200" />
-            <div className="h-96 rounded-2xl bg-gray-200" />
-          </div>
-        </main>
-      }
-    >
-      <SanggahanSellerContent />
-    </Suspense>
   );
 }
