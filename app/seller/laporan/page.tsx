@@ -9,22 +9,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 type StatusLaporan = "menunggu" | "ditinjau" | "selesai" | "ditolak";
 type FilterLaporan = "all" | "response" | "review" | "done";
 
-type BuktiSanggahan = {
-  id: string;
-  lokasi_file: string;
-  nama_file: string;
-  url?: string | null;
-};
-
-type Sanggahan = {
-  id: string;
-  kronologi_sanggahan: string;
-  status_sanggahan: string;
-  catatan_peninjauan: string | null;
-  tanggal_dibuat: string;
-  bukti_sanggahan: BuktiSanggahan[];
-};
-
 type Laporan = {
   id: string;
   pembeli_id: string;
@@ -34,68 +18,100 @@ type Laporan = {
   status_laporan: StatusLaporan;
   tanggal_dibuat: string;
   tanggal_diperbarui: string | null;
-  sanggahan: Sanggahan[];
+  sanggahan?: {
+    id: string;
+    status_sanggahan: string;
+  }[];
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  menunggu: "Menunggu Verifikasi",
+type BuktiSanggahan = {
+  id: string;
+  lokasi_file: string;
+  nama_file: string;
+};
+
+type DetailSanggahan = {
+  id: string;
+  kronologi_sanggahan: string;
+  status_sanggahan: string;
+  tanggal_dibuat: string;
+  catatan_peninjauan: string | null;
+  bukti: BuktiSanggahan[];
+};
+
+const STATUS_LABEL: Record<StatusLaporan, string> = {
+  menunggu: "Perlu Tanggapan",
   ditinjau: "Sedang Ditinjau",
   selesai: "Selesai Ditinjau",
   ditolak: "Ditolak",
 };
 
-function formatTanggal(tanggal?: string | null) {
-  if (!tanggal) return "-";
+function formatTanggal(value: string) {
+  if (!value) return "-";
+  const tanggal = new Date(value);
+  if (Number.isNaN(tanggal.getTime())) return "-";
 
-  return new Date(tanggal).toLocaleDateString("id-ID", {
+  return tanggal.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 }
 
-function statusStyle(status: string) {
+function statusStyle(status: StatusLaporan) {
   switch (status) {
     case "menunggu":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "border-amber-200 bg-amber-50 text-amber-700";
     case "ditinjau":
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "border-blue-200 bg-blue-50 text-blue-700";
     case "selesai":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
     case "ditolak":
-      return "bg-red-50 text-red-700 border-red-200";
+      return "border-red-200 bg-red-50 text-red-700";
     default:
-      return "bg-gray-50 text-gray-600 border-gray-200";
+      return "border-gray-200 bg-gray-50 text-gray-600";
   }
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { status: StatusLaporan }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${statusStyle(
-        status
-      )}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${statusStyle(status)}`}
     >
+      <span className="h-1.5 w-1.5 rounded-full bg-current" />
       {STATUS_LABEL[status] ?? status}
     </span>
   );
 }
 
 function StatCard({
-  title,
+  label,
   value,
   description,
+  icon,
   color,
 }: {
-  title: string;
-  value: number;
+  label: string;
+  value: number | string;
   description: string;
+  icon: string;
   color: string;
 }) {
   return (
-    <article className="rounded-2xl border border-[#e7eaf1] bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-[#718096]">{title}</p>
-      <p className={`mt-2 text-3xl font-extrabold ${color}`}>{value}</p>
+    <article className="rounded-2xl border border-[#e6eaf2] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold text-[#78849b]">{label}</p>
+          <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#162350]">
+            {value}
+          </p>
+        </div>
+        <div
+          className={`flex h-11 w-11 items-center justify-center rounded-xl text-lg ${color}`}
+        >
+          {icon}
+        </div>
+      </div>
       <p className="mt-3 text-xs text-[#929cb0]">{description}</p>
     </article>
   );
@@ -104,76 +120,72 @@ function StatCard({
 export default function LaporanSellerPage() {
   const router = useRouter();
 
-  const supabase = useMemo(() => createClient(), []);
-
   const [laporan, setLaporan] = useState<Laporan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
+  const [namaPemilik, setNamaPemilik] = useState("");
   const [filter, setFilter] = useState<FilterLaporan>("all");
+  const [selected, setSelected] = useState<Laporan | null>(null);
 
-  // Popup detail laporan
-  const [selectedLaporan, setSelectedLaporan] = useState<Laporan | null>(null);
-
-  // Popup detail sanggahan
+  // STATE POPUP SANGGAHAN
   const [selectedSanggahan, setSelectedSanggahan] =
-    useState<Sanggahan | null>(null);
+    useState<DetailSanggahan | null>(null);
+  const [loadingSanggahan, setLoadingSanggahan] = useState(false);
+  const [errorSanggahan, setErrorSanggahan] = useState("");
 
-  const [loadingBukti, setLoadingBukti] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const [namaToko, setNamaToko] = useState("Toko Saya");
-  const [email, setEmail] = useState("");
+  // LOAD REPORTS
+  const loadLaporan = useCallback(async () => {
+    try {
+      const supabase = createClient();
 
-  // =========================================================
-  // LOAD DATA LAPORAN
-  // =========================================================
+      const { data: userData, error: userError } =
+        await supabase.auth.getUser();
 
- const loadLaporan = useCallback(async () => {
-  try {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
+      if (userError) throw userError;
 
-      if (authError || !user) {
+      const user = userData.user;
+
+      if (!user) {
         router.replace("/login");
         return;
       }
 
-      setEmail(user.email ?? "");
+      const userId = user.id;
 
-      // Validasi role
       const { data: profil, error: profilError } = await supabase
         .from("profil_pengguna")
-        .select("id, role")
-        .eq("id", user.id)
+        .select("nama_lengkap, jenis_akun")
+        .eq("id", userId)
         .maybeSingle();
 
       if (profilError) throw profilError;
 
-      if (!profil || profil.role !== "seller") {
-        router.replace("/");
+      if (!profil || profil.jenis_akun !== "seller") {
+        router.replace("/login");
         return;
       }
 
-      // Ambil profil toko
-      const { data: toko, error: tokoError } = await supabase
+      const { data: profilToko, error: tokoError } = await supabase
         .from("profil_toko")
-        .select("nama_toko, username_toko")
-        .eq("id", user.id)
+        .select("nama_lengkap, nama_toko")
+        .eq("id", userId)
         .maybeSingle();
 
       if (tokoError) {
-        console.warn("Gagal mengambil profil toko:", tokoError.message);
+        console.error("Gagal mengambil profil toko:", tokoError);
       }
 
-      if (toko?.nama_toko) {
-        setNamaToko(toko.nama_toko);
-      } else if (toko?.username_toko) {
-        setNamaToko(toko.username_toko);
-      }
+      const nama =
+        profil.nama_lengkap?.trim() ||
+        profilToko?.nama_lengkap?.trim() ||
+        profilToko?.nama_toko?.trim() ||
+        "Seller";
 
-      // Ambil laporan milik seller beserta data sanggahan dan bukti
+      setNamaPemilik(nama);
+
       const { data, error: laporanError } = await supabase
         .from("laporan")
         .select(`
@@ -187,629 +199,829 @@ export default function LaporanSellerPage() {
           tanggal_diperbarui,
           sanggahan (
             id,
-            kronologi_sanggahan,
-            status_sanggahan,
-            catatan_peninjauan,
-            tanggal_dibuat,
-            bukti_sanggahan (
-              id,
-              lokasi_file,
-              nama_file
-            )
+            status_sanggahan
           )
         `)
-        .eq("penjual_id", user.id)
-        .order("tanggal_dibuat", { ascending: false });
+      .eq("penjual_id", userId)
+      .order("tanggal_dibuat", { ascending: false });
 
       if (laporanError) throw laporanError;
 
       setLaporan((data ?? []) as Laporan[]);
+      setError("");
     } catch (err) {
-      console.error("Gagal mengambil laporan:", err);
-      setError("Gagal memuat data laporan. Silakan coba kembali.");
+      console.error("Gagal memuat laporan seller:", err);
+      setLaporan([]);
+      setError("Laporan gagal dimuat. Periksa koneksi atau izin akses database.");
     } finally {
       setLoading(false);
     }
-  }, [supabase, router]);
-
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        loadLaporan();
-      }, 0);
-
-      return () => clearTimeout(timer);
-    }, [loadLaporan]);
-
-  // =========================================================
-  // ESCAPE UNTUK MENUTUP POPUP
-  // =========================================================
+  }, [router]);
+  
+  const retryLoad = () => {
+  setError("");
+  setLoading(true);
+  setReloadKey((prev) => prev + 1);
+};
 
   useEffect(() => {
-    function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setSelectedLaporan(null);
-        setSelectedSanggahan(null);
-      }
+  let cancelled = false;
+
+  const initialize = async () => {
+    await Promise.resolve();
+
+    if (!cancelled) {
+      await loadLaporan();
     }
+  };
 
-    window.addEventListener("keydown", handleEscape);
+  initialize();
 
-    return () => {
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, []);
+  return () => {
+    cancelled = true;
+  };
+}, [loadLaporan, reloadKey]);
 
-  // =========================================================
-  // STATISTIK
-  // =========================================================
+  // BUKA POPUP DETAIL SANGGAHAN
+  async function bukaSanggahan(id: string) {
+    setSelectedSanggahan(null);
+    setErrorSanggahan("");
+    setLoadingSanggahan(true);
 
+    try {
+      const supabase = createClient();
+
+      const { data, error: sanggahanError } = await supabase
+        .from("sanggahan")
+        .select(`
+          id,
+          kronologi_sanggahan,
+          status_sanggahan,
+          tanggal_dibuat,
+          catatan_peninjauan,
+          bukti_sanggahan (
+            id,
+            lokasi_file,
+            nama_file
+          )
+        `)
+        .eq("id", id)
+        .single();
+
+      if (sanggahanError) throw sanggahanError;
+
+      setSelectedSanggahan({
+        id: data.id,
+        kronologi_sanggahan: data.kronologi_sanggahan,
+        status_sanggahan: data.status_sanggahan,
+        tanggal_dibuat: data.tanggal_dibuat,
+        catatan_peninjauan: data.catatan_peninjauan,
+        bukti: data.bukti_sanggahan ?? [],
+      });
+    } catch (err) {
+      console.error("Gagal membuka detail sanggahan:", err);
+      setErrorSanggahan("Detail sanggahan gagal dimuat. Silakan coba kembali.");
+    } finally {
+      setLoadingSanggahan(false);
+    }
+  }
+
+  function tutupPopupSanggahan() {
+    setSelectedSanggahan(null);
+    setLoadingSanggahan(false);
+    setErrorSanggahan("");
+  }
+
+  // LOGOUT
+  async function handleLogout() {
+    if (logoutLoading) return;
+
+    setLogoutLoading(true);
+    setError("");
+
+    try {
+      const supabase = createClient();
+      const { error: logoutError } = await supabase.auth.signOut();
+
+      if (logoutError) {
+        console.error("Logout gagal:", logoutError);
+        setError("Gagal keluar dari akun. Silakan coba kembali.");
+        return;
+      }
+
+      router.replace("/");
+      router.refresh();
+    } catch (err) {
+      console.error("Logout error:", err);
+      setError("Terjadi kesalahan saat keluar dari akun.");
+    } finally {
+      setLogoutLoading(false);
+    }
+  }
+
+  // STATISTICS
   const statistik = useMemo(
     () => ({
       total: laporan.length,
-
-      response: laporan.filter((item) => item.status_laporan === "menunggu")
-        .length,
-
-      review: laporan.filter((item) => item.status_laporan === "ditinjau")
-        .length,
-
+      response: laporan.filter((item) => item.status_laporan === "menunggu").length,
+      review: laporan.filter((item) => item.status_laporan === "ditinjau").length,
       done: laporan.filter(
         (item) =>
           item.status_laporan === "selesai" ||
           item.status_laporan === "ditolak"
       ).length,
+      rejected: laporan.filter((item) => item.status_laporan === "ditolak").length,
     }),
     [laporan]
   );
 
-  // =========================================================
-  // FILTER LAPORAN
-  // =========================================================
-
+  // FILTER REPORTS
   const filteredReports = useMemo(() => {
     switch (filter) {
       case "response":
-        return laporan.filter(
-          (item) => item.status_laporan === "menunggu"
-        );
-
+        return laporan.filter((item) => item.status_laporan === "menunggu");
       case "review":
-        return laporan.filter(
-          (item) => item.status_laporan === "ditinjau"
-        );
-
+        return laporan.filter((item) => item.status_laporan === "ditinjau");
       case "done":
         return laporan.filter(
           (item) =>
             item.status_laporan === "selesai" ||
             item.status_laporan === "ditolak"
         );
-
       default:
         return laporan;
     }
   }, [laporan, filter]);
 
-  // =========================================================
-  // BUKA POPUP SANGGAHAN + SIGNED URL BUKTI
-  // =========================================================
-
-  const bukaPopupSanggahan = async (item: Sanggahan) => {
-    setSelectedSanggahan(item);
-    setLoadingBukti(true);
-
-    try {
-      const buktiDenganUrl = await Promise.all(
-        (item.bukti_sanggahan ?? []).map(async (bukti) => {
-          const { data, error } = await supabase.storage
-            .from("bukti-sanggahan")
-            .createSignedUrl(bukti.lokasi_file, 3600);
-
-          if (error) {
-            console.warn("Gagal membuat URL bukti:", error.message);
-            return { ...bukti, url: null };
-          }
-
-          return { ...bukti, url: data.signedUrl };
-        })
-      );
-
-      setSelectedSanggahan({
-        ...item,
-        bukti_sanggahan: buktiDenganUrl,
-      });
-    } catch (err) {
-      console.error("Gagal memuat bukti sanggahan:", err);
-    } finally {
-      setLoadingBukti(false);
-    }
-  };
-
-  // =========================================================
-  // LOGOUT
-  // =========================================================
-
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      alert("Gagal logout. Silakan coba kembali.");
-      return;
-    }
-
-    router.replace("/login");
-    router.refresh();
-  };
-
-  // =========================================================
-  // FILTER BUTTON
-  // =========================================================
-
-  const filterItems: { id: FilterLaporan; label: string }[] = [
-    { id: "all", label: "Semua Laporan" },
-    { id: "response", label: "Perlu Tanggapan" },
-    { id: "review", label: "Sedang Ditinjau" },
-    { id: "done", label: "Selesai" },
+  const filters: { id: FilterLaporan; label: string; count?: number }[] = [
+    { id: "all", label: "Semua", count: statistik.total },
+    { id: "response", label: "Perlu Tanggapan", count: statistik.response },
+    { id: "review", label: "Ditinjau", count: statistik.review },
+    { id: "done", label: "Selesai", count: statistik.done },
   ];
 
-  // =========================================================
-  // RENDER
-  // =========================================================
+  const initialProfil = namaPemilik.trim().charAt(0).toUpperCase() || "S";
+
+  // MODAL ESCAPE
+  useEffect(() => {
+    if (!selected) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setSelected(null);
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [selected]);
+
+  // POPUP SANGGAHAN ESCAPE
+  useEffect(() => {
+    if (!selectedSanggahan && !loadingSanggahan && !errorSanggahan) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") tutupPopupSanggahan();
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [selectedSanggahan, loadingSanggahan, errorSanggahan]);
 
   return (
-    <main className="min-h-screen bg-[#f4f6fa] pb-28 text-[#172033] md:pb-10">
+    <main className="min-h-screen bg-[#f5f7fc] pb-24 text-[#172033] md:pb-10">
       {/* HEADER */}
-      <header className="sticky top-0 z-30 border-b border-[#e3e7f0] bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
-          <Link href="/seller" className="flex items-center gap-2">
+      {/* HEADER */}
+      {/* DESKTOP NAV */}
+      <header className="sticky top-0 z-40 border-b border-[#e8ecf4] bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          {/* BRAND */}
+          <Link href="/seller" className="flex shrink-0 items-center gap-3">
             <Image
               src="/assets/images/logo-trustx.svg"
-              alt="TrustX"
-              width={112}
-              height={36}
-              className="h-auto w-26.25"
+              alt="Logo TrustX"
+              width={42}
+              height={42}
+              priority
             />
+            <div>
+              <h1 className="text-lg font-extrabold tracking-tight text-[#162350]">
+                TrustX
+              </h1>
+              <p className="text-[11px] font-medium text-[#8992a7]">
+                Seller Workspace
+              </p>
+            </div>
           </Link>
-
-          <nav className="hidden items-center gap-7 text-sm font-semibold md:flex">
+          <nav className="hidden items-center gap-2 md:flex">
             <Link
               href="/seller"
-              className="text-[#7a8498] transition hover:text-[#162350]"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#647089] transition hover:bg-[#f1f4fa] hover:text-[#162350]"
             >
+              <svg
+                className="h-4.5 w-4.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path d="m3 10 9-7 9 7" />
+                <path d="M5 9v11h14V9M9 20v-6h6v6" />
+              </svg>
               Beranda
             </Link>
 
             <Link
               href="/seller/laporan"
-              className="text-[#162350]"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#4f6bd8]"
             >
+              <svg
+                className="h-4.5 w-4.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6M8 13h8M8 17h6" />
+              </svg>
               Laporan
             </Link>
 
             <Link
               href="/seller/profil"
-              className="text-[#7a8498] transition hover:text-[#162350]"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#647089] transition hover:bg-[#f1f4fa] hover:text-[#162350]"
             >
+              <svg
+                className="h-4.5 w-4.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <path d="M5 21a7 7 0 0 1 14 0" />
+              </svg>
               Profil
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-bold text-[#172033]">{namaToko}</p>
-              <p className="text-xs text-[#8993a7]">{email}</p>
-            </div>
+          {/* HEADER ACTION */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              aria-label="Notifikasi"
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e3e7f0] bg-white text-[#647089] transition hover:bg-[#f4f6fa]"
+            >
+              <svg
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                <path d="M10 21h4" />
+              </svg>
+            </button>
+
+            <Link
+              href="/seller/profil"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#4f6bd8] to-[#162350] text-sm font-extrabold text-white shadow-sm transition hover:scale-105"
+              title="Profil"
+              aria-label="Profil"
+            >
+              {initialProfil.slice(0, 1) || "S"}
+            </Link>
 
             <button
+              type="button"
               onClick={handleLogout}
-              className="rounded-xl border border-[#e3e7f0] px-3 py-2 text-xs font-bold text-[#647089] transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+              disabled={logoutLoading}
+              className="hidden rounded-lg px-3 py-2 text-xs font-bold text-[#647089] transition hover:bg-red-50 hover:text-red-600 sm:block"
             >
-              Keluar
+              {logoutLoading ? "Keluar..." : "Keluar"}
             </button>
           </div>
         </div>
       </header>
 
       {/* CONTENT */}
-      <div className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-10">
-        {/* INTRO */}
-        <section className="mb-8 overflow-hidden rounded-3xl bg-[#162350] p-6 text-white md:p-9">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#aebde9]">
-            Pusat Laporan TrustX
-          </p>
-
-          <h1 className="mt-3 text-2xl font-extrabold md:text-3xl">
-            Laporan Terkait Toko
-          </h1>
-
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[#d3dbef]">
-            Pantau laporan komunitas, pelajari hasil peninjauan, dan sampaikan
-            klarifikasi dengan bukti yang relevan.
-          </p>
-        </section>
-
-        {/* STATS */}
-        <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Total Laporan"
-            value={statistik.total}
-            description="Seluruh laporan yang terkait dengan toko"
-            color="text-[#162350]"
-          />
-
-          <StatCard
-            title="Perlu Tanggapan"
-            value={statistik.response}
-            description="Laporan yang masih menunggu verifikasi"
-            color="text-amber-600"
-          />
-
-          <StatCard
-            title="Sedang Ditinjau"
-            value={statistik.review}
-            description="Laporan dalam proses peninjauan"
-            color="text-blue-600"
-          />
-
-          <StatCard
-            title="Selesai Ditinjau"
-            value={statistik.done}
-            description="Laporan yang sudah memiliki hasil"
-            color="text-emerald-600"
-          />
-        </section>
-
-        {/* FILTER */}
-        <section className="mb-6">
-          <div className="flex flex-wrap gap-2">
-            {filterItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setFilter(item.id)}
-                className={`rounded-xl px-4 py-2.5 text-sm font-bold transition ${
-                  filter === item.id
-                    ? "bg-[#162350] text-white shadow-sm"
-                    : "border border-[#e3e7f0] bg-white text-[#69758b] hover:border-[#162350] hover:text-[#162350]"
-                }`}
+      <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 sm:pt-9 lg:px-8">
+        {/* PAGE INTRO */}
+        <section className="mb-7 overflow-hidden rounded-3xl bg-linear-to-br from-[#162350] via-[#22346b] to-[#4f6bd8] p-6 text-white shadow-sm sm:p-8">
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-extrabold tracking-[0.15em] text-white/80">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#91aaff]" />
+                PUSAT LAPORAN TRUSTX
+              </span>
+              <h1 className="mt-4 text-2xl font-extrabold tracking-tight sm:text-3xl">
+                Laporan Terkait Toko
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">
+                Pantau laporan komunitas, pelajari hasil peninjauan, dan sampaikan
+                klarifikasi dengan bukti yang relevan.
+              </p>
+            </div>
+            <div className="hidden h-24 w-24 shrink-0 items-center justify-center rounded-3xl border border-white/15 bg-white/10 text-5xl sm:flex">
+              <svg
+                className="h-50 w-50"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
               >
-                {item.label}
-              </button>
-            ))}
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6M8 13h8M8 17h6" />
+              </svg>
+            </div>
           </div>
         </section>
 
         {/* ERROR */}
-        {error && (
-          <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            <p>{error}</p>
-
+        {error && !loading && (
+          <div
+            role="alert"
+            className="mb-6 flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <p className="font-bold text-red-700">Terjadi masalah</p>
+              <p className="mt-1 text-sm text-red-600">{error}</p>
+            </div>
             <button
-              onClick={() => {
-                setLoading(true);
-                setError("");
-                void loadLaporan();
-              }}
-              className="mt-2 font-bold underline"
+              type="button"
+              onClick={retryLoad}
+              className="shrink-0 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700"
             >
-              Coba muat ulang
+              Coba Lagi
             </button>
           </div>
         )}
 
-        {/* LOADING */}
-        {loading ? (
-          <div className="rounded-2xl border border-[#e3e7f0] bg-white p-12 text-center">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#e3e7f0] border-t-[#162350]" />
-            <p className="mt-4 text-sm text-[#8993a7]">
-              Memuat laporan...
-            </p>
-          </div>
-        ) : filteredReports.length === 0 ? (
-          /* EMPTY */
-          <div className="rounded-2xl border border-[#e3e7f0] bg-white px-5 py-14 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef1f8] text-2xl">
-              📋
+        {/* STATS */}
+        <section
+          className="mb-7 grid grid-cols-2 gap-3 lg:grid-cols-4"
+          aria-label="Ringkasan laporan"
+        >
+          <StatCard
+            label="Total Laporan"
+            value={loading ? "—" : statistik.total}
+            description="Semua laporan toko"
+            icon="▤"
+            color="bg-[#eef2ff] text-[#4f6bd8]"
+          />
+          <StatCard
+            label="Perlu Tanggapan"
+            value={loading ? "—" : statistik.response}
+            description="Perlu ditindaklanjuti"
+            icon="◷"
+            color="bg-amber-50 text-amber-600"
+          />
+          <StatCard
+            label="Sedang Ditinjau"
+            value={loading ? "—" : statistik.review}
+            description="Dalam pemeriksaan"
+            icon="⌕"
+            color="bg-blue-50 text-blue-600"
+          />
+          <StatCard
+            label="Selesai Ditinjau"
+            value={loading ? "—" : statistik.done}
+            description="Hasil sudah tersedia"
+            icon="✓"
+            color="bg-emerald-50 text-emerald-600"
+          />
+        </section>
+
+        {/* REPORT SECTION */}
+        <section className="overflow-hidden rounded-3xl border border-[#e3e7f0] bg-white shadow-sm">
+          <div className="border-b border-[#edf0f6] p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-extrabold text-[#162350]">
+                  Daftar Laporan
+                </h2>
+                <p className="mt-1 text-sm text-[#8792a8]">
+                  Pilih laporan untuk membaca detail atau mengajukan sanggahan.
+                </p>
+              </div>
+              <span className="rounded-full bg-[#f1f4fa] px-3 py-1.5 text-xs font-bold text-[#647089]">
+                {loading ? "Memuat..." : `${filteredReports.length} laporan`}
+              </span>
             </div>
 
-            <h3 className="mt-4 text-base font-bold text-[#172033]">
-              Tidak ada laporan
-            </h3>
-
-            <p className="mt-2 text-sm text-[#8993a7]">
-              Belum ada laporan pada kategori ini.
-            </p>
-          </div>
-        ) : (
-          /* REPORT LIST */
-          <section className="space-y-4">
-            {filteredReports.map((item) => {
-              const sanggahan = item.sanggahan?.[0] ?? null;
-
-              return (
-                <article
+            {/* FILTERS */}
+            <div
+              className="mt-5 flex gap-2 overflow-x-auto pb-1"
+              role="group"
+              aria-label="Filter status laporan"
+            >
+              {filters.map((item) => (
+                <button
                   key={item.id}
-                  className="rounded-2xl border border-[#e3e7f0] bg-white p-5 shadow-sm md:p-6"
+                  type="button"
+                  onClick={() => setFilter(item.id)}
+                  aria-pressed={filter === item.id}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-bold transition ${
+                    filter === item.id
+                      ? "border-[#162350] bg-[#162350] text-white shadow-sm"
+                      : "border-[#e5eaf2] bg-white text-[#68758d] hover:border-[#cbd5ee] hover:bg-[#f8faff]"
+                  }`}
                 >
-                  {/* CARD HEADER */}
-                  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-                    <div>
-                      <p className="text-xs font-bold tracking-wide text-[#8993a7]">
-                        LP-{item.id.slice(0, 8).toUpperCase()}
-                      </p>
+                  {item.label}
+                  <span
+                    className={`rounded-md px-1.5 py-0.5 text-[10px] ${
+                      filter === item.id
+                        ? "bg-white/15 text-white"
+                        : "bg-[#f1f4fa] text-[#7e8aa2]"
+                    }`}
+                  >
+                    {loading ? "—" : item.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-                      <h2 className="mt-2 text-lg font-extrabold text-[#172033]">
-                        {item.judul_laporan}
-                      </h2>
+          <div className="p-4 sm:p-6">
+            {/* LOADING */}
+            {loading && (
+              <div className="space-y-3 py-5">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse rounded-2xl border border-[#edf0f6] p-5"
+                  >
+                    <div className="h-3 w-24 rounded bg-gray-100" />
+                    <div className="mt-4 h-4 w-2/3 rounded bg-gray-100" />
+                    <div className="mt-3 h-3 w-full rounded bg-gray-100" />
+                    <div className="mt-2 h-3 w-4/5 rounded bg-gray-100" />
+                  </div>
+                ))}
+              </div>
+            )}
 
-                      <p className="mt-1 text-xs text-[#8993a7]">
-                        Dibuat {formatTanggal(item.tanggal_dibuat)}
+            {/* EMPTY */}
+            {!loading && !error && filteredReports.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-[#dfe5ef] bg-[#fafbfe] px-5 py-12 text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#eef2ff] text-2xl text-[#4f6bd8]">
+                  ⌕
+                </div>
+                <h3 className="mt-4 text-base font-extrabold text-[#162350]">
+                  {filter === "all"
+                    ? "Belum Ada Laporan"
+                    : "Laporan Tidak Ditemukan"}
+                </h3>
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#8792a8]">
+                  Belum ada laporan toko pada kategori ini atau filter tidak cocok.
+                </p>
+                {filter !== "all" && (
+                  <button
+                    type="button"
+                    onClick={() => setFilter("all")}
+                    className="mt-4 rounded-xl border border-[#dfe5ef] bg-white px-4 py-2.5 text-sm font-bold text-[#4f6bd8] hover:bg-[#f5f7ff]"
+                  >
+                    Tampilkan Semua Laporan
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* REPORT CARDS */}
+            {!loading && !error && filteredReports.length > 0 && (
+              <div className="space-y-4">
+                {filteredReports.map((item) => (
+                  <article
+                    key={item.id}
+                    className="rounded-2xl border border-[#e7ebf3] bg-white p-4 transition hover:border-[#cdd7f5] hover:shadow-sm sm:p-5"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-extrabold tracking-widest text-[#99a3b6]">
+                          LP-{item.id.slice(0, 8).toUpperCase()}
+                        </span>
+                        <h3 className="mt-1.5 wrap-break-word text-base font-extrabold text-[#162350]">
+                          {item.judul_laporan || "Laporan transaksi"}
+                        </h3>
+                        <p className="mt-2 text-xs text-[#8792a8]">
+                          Dilaporkan pada {formatTanggal(item.tanggal_dibuat)}
+                        </p>
+                      </div>
+                      <StatusBadge status={item.status_laporan} />
+                    </div>
+
+                    <div className="mt-4 rounded-xl bg-[#f8faff] p-3.5">
+                      <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-[#647089]">
+                        {item.kronologi || "Tidak ada kronologi yang tersedia."}
                       </p>
                     </div>
 
-                    <StatusBadge status={item.status_laporan} />
-                  </div>
-
-                  {/* REPORT DESCRIPTION */}
-                  <p className="mt-4 line-clamp-3 text-sm leading-7 text-[#647089]">
-                    {item.kronologi}
-                  </p>
-
-                  {/* ACTIONS */}
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setSelectedLaporan(item)}
-                      className="rounded-xl border border-[#e3e7f0] px-4 py-2.5 text-sm font-bold text-[#162350] transition hover:bg-[#f4f6fa]"
-                    >
-                      Detail Laporan
-                    </button>
-
-                    {/* Menunggu: belum boleh sanggahan */}
-                    {item.status_laporan === "menunggu" && (
+                    <div className="mt-4 flex flex-wrap gap-2">
                       <button
-                        disabled
-                        className="cursor-not-allowed rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-400"
+                        type="button"
+                        onClick={() => setSelected(item)}
+                        className="inline-flex items-center justify-center rounded-xl border border-[#e2e7f0] bg-white px-4 py-2.5 text-sm font-bold text-[#43516f] transition hover:bg-[#f5f7fc]"
                       >
-                        Menunggu Verifikasi Tim
+                        Detail Laporan
                       </button>
-                    )}
 
-                    {/* Ditinjau: belum mengajukan sanggahan */}
-                    {item.status_laporan === "ditinjau" && !sanggahan && (
-                      <Link
-                        href={`/seller/sanggahan?laporan=${item.id}`}
-                        className="rounded-xl bg-[#162350] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#2a3c75]"
-                      >
-                        Ajukan Sanggahan
-                      </Link>
-                    )}
-
-                    {/* Sanggahan sudah diajukan */}
-                    {sanggahan && (
-                      <>
+                      {/* AKSI SANGGAHAN */}
+                      {item.status_laporan === "menunggu" && (
                         <button
                           type="button"
-                          onClick={() => bukaPopupSanggahan(sanggahan)}
-                          className="rounded-xl border border-[#dbe3f4] bg-[#eef3ff] px-4 py-2.5 text-sm font-bold text-[#29447f] transition hover:bg-[#dfe9ff]"
+                          disabled
+                          className="cursor-not-allowed rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-400"
+                        >
+                          Menunggu Verifikasi Tim
+                        </button>
+                      )}
+
+                      {/* BELUM ADA SANGGAHAN */}
+                      {item.status_laporan === "ditinjau" &&
+                        (!item.sanggahan || item.sanggahan.length === 0) && (
+                          <Link
+                            href={`/seller/sanggahan?laporan=${item.id}`}
+                            className="inline-flex items-center justify-center rounded-xl bg-[#4f6bd8] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#405ec7]"
+                          >
+                            Ajukan Sanggahan
+                          </Link>
+                        )}
+
+                      {/* SUDAH ADA SANGGAHAN */}
+                      {item.sanggahan && item.sanggahan.length > 0 && (
+                        <div className="inline-flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700">
+                            ✓ Sanggahan Diajukan
+                          </span>
+
+                          <span className="inline-flex items-center rounded-xl bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700">
+                            Menunggu Peninjauan
+                          </span>
+                        </div>
+                      )}
+
+                      {/* STATUS LAPORAN */}
+                      {item.status_laporan === "ditinjau" &&
+                        (!item.sanggahan || item.sanggahan.length === 0) && (
+                          <span className="inline-flex items-center rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700">
+                            Sedang dalam pemeriksaan
+                          </span>
+                        )}
+
+                      {/* LIHAT SANGGAHAN - POPUP */}
+                      {item.sanggahan && item.sanggahan.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => bukaSanggahan(item.sanggahan![0].id)}
+                          className="inline-flex items-center justify-center rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100"
                         >
                           Lihat Sanggahan
                         </button>
-
-                        <span className="inline-flex items-center rounded-xl bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700">
-                          Menunggu Peninjauan Sanggahan
-                        </span>
-                      </>
-                    )}
-
-                    {/* Hasil peninjauan */}
-                    {(item.status_laporan === "selesai" ||
-                      item.status_laporan === "ditolak") &&
-                      sanggahan && (
-                        <Link
-                          href={`/seller/hasil-peninjauan?laporan=${item.id}`}
-                          className="rounded-xl bg-[#162350] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#2a3c75]"
-                        >
-                          Lihat Hasil
-                        </Link>
                       )}
-                  </div>
-                </article>
-              );
-            })}
-          </section>
-        )}
 
-        {/* HAK KLARIFIKASI */}
-        <section className="mt-8 rounded-2xl border border-[#dce5f7] bg-[#eef3fb] p-5 md:p-6">
-          <h3 className="font-bold text-[#162350]">
-            Hak Klarifikasi Penjual
-          </h3>
-
-          <p className="mt-2 text-sm leading-7 text-[#647089]">
-            Jika laporan telah masuk tahap peninjauan, penjual dapat mengajukan
-            sanggahan dengan menyertakan kronologi dan bukti pendukung. Pastikan
-            bukti yang dikirim relevan dengan laporan.
-          </p>
+                      {/* LIHAT HASIL */}
+                      {(item.status_laporan === "selesai" ||
+                        item.status_laporan === "ditolak") &&
+                        item.sanggahan &&
+                        item.sanggahan.length > 0 && (
+                          <Link
+                            href={`/seller/hasil-peninjauan?laporan=${item.id}`}
+                            className="inline-flex items-center justify-center rounded-xl bg-[#eef2ff] px-4 py-2.5 text-sm font-bold text-[#405ec7] transition hover:bg-[#e2e9ff]"
+                          >
+                            Lihat Hasil
+                          </Link>
+                        )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
+
+        {/* NOTICE */}
+        <aside className="mt-6 flex gap-3 rounded-2xl border border-blue-100 bg-blue-50/80 p-4 sm:p-5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#4f6bd8]">
+            <span className="text-xl">ⓘ</span>
+          </div>
+          <div>
+            <h3 className="text-sm font-extrabold text-[#162350]">
+              Hak Klarifikasi Penjual
+            </h3>
+            <p className="mt-1 text-xs leading-5 text-[#647089]">
+              Sampaikan kronologi yang jelas dan bukti yang relevan. Hindari
+              mengunggah data pribadi yang tidak diperlukan.
+            </p>
+          </div>
+        </aside>
+
+        {/* FOOTER */}
+        <footer className="mt-8 border-t border-[#e3e7f0] pt-6">
+          <p className="text-center text-xs text-[#98a1b4]">
+            © 2026 TrustX. Cek Dulu Sebelum Transaksi.
+          </p>
+        </footer>
       </div>
 
-      {/* =====================================================
-          POPUP DETAIL LAPORAN
-      ====================================================== */}
-
-      {selectedLaporan && (
+      {/* DETAIL MODAL LAPORAN */}
+      {selected && (
         <div
-          onClick={() => setSelectedLaporan(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-60 flex items-center justify-center bg-[#101a36]/60 p-4 backdrop-blur-sm"
+          onClick={() => setSelected(null)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modalDetailTitle"
+            className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/30 bg-white p-5 shadow-2xl sm:p-7"
             onClick={(e) => e.stopPropagation()}
-            className="my-auto w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl md:p-8"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-[#8993a7]">
-                  Detail Laporan
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              aria-label="Tutup detail"
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl bg-[#f1f4fa] text-xl text-[#647089] transition hover:bg-[#e5eaf2]"
+            >
+              ×
+            </button>
+
+            <span className="text-[10px] font-extrabold tracking-[0.12em] text-[#8994a9]">
+              LP-{selected.id.slice(0, 8).toUpperCase()}
+            </span>
+
+            <h2
+              id="modalDetailTitle"
+              className="mt-2 pr-10 text-xl font-extrabold leading-snug text-[#162350]"
+            >
+              {selected.judul_laporan || "Detail Laporan Akun"}
+            </h2>
+
+            <div className="mt-4">
+              <StatusBadge status={selected.status_laporan} />
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl bg-[#f5f7fc] p-4">
+                <span className="text-xs font-semibold text-[#8792a8]">
+                  ID Laporan
+                </span>
+                <p className="mt-1 break-all text-sm font-bold text-[#162350]">
+                  {selected.id}
                 </p>
-
-                <h2 className="mt-2 text-xl font-extrabold text-[#172033]">
-                  {selectedLaporan.judul_laporan}
-                </h2>
               </div>
-
-              <button
-                onClick={() => setSelectedLaporan(null)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition hover:bg-gray-200"
-                aria-label="Tutup popup"
-              >
-                ✕
-              </button>
+              <div className="rounded-2xl bg-[#f5f7fc] p-4">
+                <span className="text-xs font-semibold text-[#8792a8]">
+                  Tanggal Laporan
+                </span>
+                <p className="mt-1 text-sm font-bold text-[#162350]">
+                  {formatTanggal(selected.tanggal_dibuat)}
+                </p>
+              </div>
             </div>
 
-            <div className="mt-5">
-              <StatusBadge status={selectedLaporan.status_laporan} />
-            </div>
-
-            <div className="mt-5 rounded-2xl bg-[#f4f6fa] p-4">
-              <p className="text-xs font-bold text-[#8993a7]">
-                Tanggal Laporan
-              </p>
-
-              <p className="mt-1 text-sm font-semibold text-[#172033]">
-                {formatTanggal(selectedLaporan.tanggal_dibuat)}
-              </p>
-            </div>
-
-            <div className="mt-5">
-              <h3 className="text-sm font-bold text-[#172033]">
+            <div className="mt-4 rounded-2xl border border-[#e6eaf2] p-4">
+              <h3 className="text-sm font-extrabold text-[#162350]">
                 Kronologi Laporan
               </h3>
-
               <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[#647089]">
-                {selectedLaporan.kronologi}
+                {selected.kronologi || "Tidak ada kronologi tersedia."}
               </p>
             </div>
 
-            {selectedLaporan.sanggahan?.[0] && (
-              <button
-                onClick={() => {
-                  const sanggahan = selectedLaporan.sanggahan[0];
-                  setSelectedLaporan(null);
-                  void bukaPopupSanggahan(sanggahan);
-                }}
-                className="mt-6 w-full rounded-xl border border-[#dbe3f4] bg-[#eef3ff] px-4 py-3 text-sm font-bold text-[#29447f] transition hover:bg-[#dfe9ff]"
-              >
-                Lihat Sanggahan yang Diajukan
-              </button>
-            )}
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              {selected.status_laporan === "menunggu" && (
+                <Link
+                  href={`/seller/sanggahan?laporan=${selected.id}`}
+                  className="flex flex-1 items-center justify-center rounded-xl bg-[#162350] px-4 py-3 text-sm font-bold text-white hover:bg-[#2a3c75]"
+                >
+                  Ajukan Sanggahan
+                </Link>
+              )}
 
-            <button
-              onClick={() => setSelectedLaporan(null)}
-              className="mt-3 w-full rounded-xl bg-[#162350] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#2a3c75]"
-            >
-              Tutup
-            </button>
+              {(selected.status_laporan === "selesai" ||
+                selected.status_laporan === "ditolak") && (
+                  <Link
+                    href={`/seller/hasil-peninjauan?laporan=${selected.id}`}
+                    className="flex flex-1 items-center justify-center rounded-xl bg-[#eef2ff] px-4 py-3 text-sm font-bold text-[#405ec7] hover:bg-[#e2e9ff]"
+                  >
+                    Lihat Hasil Peninjauan
+                  </Link>
+                )}
+
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                className="flex flex-1 items-center justify-center rounded-xl border border-[#e3e7f0] bg-white px-4 py-3 text-sm font-bold text-[#53617d] transition hover:bg-[#f5f7fc]"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* =====================================================
-          POPUP DETAIL SANGGAHAN
-      ====================================================== */}
-
-      {selectedSanggahan && (
+      {/* POPUP DETAIL SANGGAHAN */}
+      {(loadingSanggahan || selectedSanggahan || errorSanggahan) && (
         <div
-          onClick={() => setSelectedSanggahan(null)}
-          className="fixed inset-0 z-60 flex items-center justify-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-70 flex items-center justify-center bg-[#101a36]/60 p-4 backdrop-blur-sm"
+          onClick={tutupPopupSanggahan}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sanggahanTitle"
+            className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/30 bg-white p-5 shadow-2xl sm:p-7"
             onClick={(e) => e.stopPropagation()}
-            className="my-auto w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl"
           >
-            {/* POPUP HEADER */}
-            <div className="flex items-start justify-between bg-[#162350] p-6 text-white md:p-7">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#aebde9]">
-                  Detail Pengajuan
-                </p>
+            <button
+              type="button"
+              onClick={tutupPopupSanggahan}
+              aria-label="Tutup popup"
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl bg-[#f1f4fa] text-xl text-[#647089] transition hover:bg-[#e5eaf2]"
+            >
+              ×
+            </button>
 
-                <h2 className="mt-2 text-xl font-extrabold md:text-2xl">
-                  Sanggahan Penjual
-                </h2>
+            <h2
+              id="sanggahanTitle"
+              className="pr-10 text-xl font-extrabold text-[#162350]"
+            >
+              Detail Sanggahan
+            </h2>
 
-                <p className="mt-2 text-xs text-[#cbd5eb]">
-                  ID: {selectedSanggahan.id.slice(0, 13)}
-                </p>
-              </div>
+            <p className="mt-1 text-sm text-[#8792a8]">
+              Informasi sanggahan yang diajukan penjual.
+            </p>
 
-              <button
-                onClick={() => setSelectedSanggahan(null)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
-                aria-label="Tutup popup sanggahan"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* POPUP BODY */}
-            <div className="max-h-[70vh] overflow-y-auto p-6 md:p-7">
-              {/* STATUS */}
-              <div className="rounded-2xl border border-[#e3e7f0] p-4">
-                <p className="text-xs font-bold text-[#8993a7]">
-                  Status Sanggahan
-                </p>
-
-                <span className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700">
-                  {selectedSanggahan.status_sanggahan}
-                </span>
-
-                <p className="mt-3 text-xs text-[#8993a7]">
-                  Diajukan pada {formatTanggal(selectedSanggahan.tanggal_dibuat)}
+            {/* LOADING POPUP */}
+            {loadingSanggahan && (
+              <div className="py-12 text-center">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#e3e7f0] border-t-[#4f6bd8]" />
+                <p className="mt-3 text-sm text-[#8792a8]">
+                  Memuat detail sanggahan...
                 </p>
               </div>
+            )}
 
-              {/* KRONOLOGI SANGGAHAN */}
-              <section className="mt-5">
-                <h3 className="text-sm font-extrabold text-[#172033]">
-                  Kronologi Sanggahan
-                </h3>
+            {/* ERROR POPUP */}
+            {errorSanggahan && !loadingSanggahan && (
+              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+                {errorSanggahan}
+              </div>
+            )}
 
-                <div className="mt-3 rounded-2xl bg-[#f4f6fa] p-4">
-                  <p className="whitespace-pre-wrap text-sm leading-7 text-[#647089]">
-                    {selectedSanggahan.kronologi_sanggahan ||
-                      "Kronologi sanggahan tidak tersedia."}
+            {/* DETAIL POPUP */}
+            {selectedSanggahan && !loadingSanggahan && (
+              <>
+                {/* STATUS & TANGGAL */}
+                <div className="mt-5 rounded-2xl bg-[#f5f7fc] p-4">
+                  <p className="text-xs font-semibold text-[#8792a8]">
+                    Status Sanggahan
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-[#162350]">
+                    {selectedSanggahan.status_sanggahan}
+                  </p>
+
+                  <p className="mt-3 text-xs font-semibold text-[#8792a8]">
+                    Tanggal Pengajuan
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-[#162350]">
+                    {formatTanggal(selectedSanggahan.tanggal_dibuat)}
                   </p>
                 </div>
-              </section>
 
-              {/* BUKTI SANGGAHAN */}
-              <section className="mt-5">
-                <h3 className="text-sm font-extrabold text-[#172033]">
-                  Bukti Sanggahan
-                </h3>
-
-                {loadingBukti ? (
-                  <p className="mt-3 text-sm text-[#8993a7]">
-                    Memuat bukti...
+                {/* KRONOLOGI */}
+                <div className="mt-5 rounded-2xl border border-[#e6eaf2] p-4">
+                  <h3 className="text-sm font-extrabold text-[#162350]">
+                    Kronologi Sanggahan
+                  </h3>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[#647089]">
+                    {selectedSanggahan.kronologi_sanggahan ||
+                      "Kronologi tidak tersedia."}
                   </p>
-                ) : !selectedSanggahan.bukti_sanggahan?.length ? (
-                  <div className="mt-3 rounded-2xl border border-dashed border-[#dce1ea] p-5 text-center">
-                    <p className="text-sm text-[#8993a7]">
+                </div>
+
+                {/* BUKTI */}
+                <div className="mt-5 rounded-2xl border border-[#e6eaf2] p-4">
+                  <h3 className="text-sm font-extrabold text-[#162350]">
+                    Bukti Sanggahan
+                  </h3>
+
+                  {selectedSanggahan.bukti.length === 0 ? (
+                    <p className="mt-3 text-sm text-[#8792a8]">
                       Tidak ada bukti yang dilampirkan.
                     </p>
-                  </div>
-                ) : (
-                  <div className="mt-3 space-y-3">
-                    {selectedSanggahan.bukti_sanggahan.map((bukti) => (
-                      <div
-                        key={bukti.id}
-                        className="flex flex-col gap-3 rounded-2xl border border-[#e3e7f0] p-4 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eef1f8]">
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {selectedSanggahan.bukti.map((bukti) => (
+                        <div
+                          key={bukti.id}
+                          className="flex items-center gap-3 rounded-xl bg-[#f5f7fc] p-3"
+                        >
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#eef2ff] text-[#4f6bd8]">
                             <svg
+                              className="h-5 w-5"
                               viewBox="0 0 24 24"
                               fill="none"
-                              className="h-5 w-5 text-[#162350]"
                               stroke="currentColor"
                               strokeWidth="1.8"
                             >
@@ -819,87 +1031,96 @@ export default function LaporanSellerPage() {
                           </div>
 
                           <div className="min-w-0">
-                            <p className="break-all text-sm font-bold text-[#172033]">
+                            <p className="break-all text-sm font-bold text-[#162350]">
                               {bukti.nama_file}
                             </p>
-                            <p className="mt-1 text-xs text-[#8993a7]">
-                              File bukti sanggahan
+                            <p className="mt-1 text-xs text-[#8792a8]">
+                              File bukti pendukung
                             </p>
                           </div>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                        {bukti.url && (
-                          <a
-                            href={bukti.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="shrink-0 rounded-xl bg-[#162350] px-4 py-2.5 text-center text-xs font-bold text-white transition hover:bg-[#2a3c75]"
-                          >
-                            Lihat Bukti
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* CATATAN REVIEW */}
-              {selectedSanggahan.catatan_peninjauan && (
-                <section className="mt-5">
-                  <h3 className="text-sm font-extrabold text-[#172033]">
-                    Catatan Peninjauan
-                  </h3>
-
-                  <div className="mt-3 rounded-2xl border border-blue-100 bg-blue-50 p-4">
-                    <p className="whitespace-pre-wrap text-sm leading-7 text-blue-800">
+                {/* CATATAN PENINJAUAN */}
+                {selectedSanggahan.catatan_peninjauan && (
+                  <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                    <h3 className="text-sm font-extrabold text-blue-900">
+                      Catatan Peninjauan
+                    </h3>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-blue-800">
                       {selectedSanggahan.catatan_peninjauan}
                     </p>
                   </div>
-                </section>
-              )}
-            </div>
+                )}
+              </>
+            )}
 
-            {/* POPUP FOOTER */}
-            <div className="border-t border-[#e3e7f0] bg-white p-5">
-              <button
-                onClick={() => setSelectedSanggahan(null)}
-                className="w-full rounded-xl bg-[#162350] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#2a3c75]"
-              >
-                Tutup Popup
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={tutupPopupSanggahan}
+              className="mt-6 w-full rounded-xl bg-[#162350] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#2a3c75]"
+            >
+              Tutup
+            </button>
           </div>
         </div>
       )}
 
       {/* MOBILE NAV */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#e3e7f0] bg-white/95 px-3 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        <div className="mx-auto flex max-w-lg items-center justify-around py-2">
-          <Link
-            href="/seller"
-            className="flex flex-col items-center gap-1 px-4 py-1 text-[#8993a7]"
+      <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-3 border-t border-[#e3e7f0] bg-white/95 px-3 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-lg md:hidden">
+        <Link
+          href="/seller"
+          className="flex flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-xs font-medium text-[#667089] transition hover:bg-[#f4f6fa]"
+        >
+          <svg
+            className="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
           >
-            <span className="text-lg">⌂</span>
-            <span className="text-[10px] font-semibold">Beranda</span>
-          </Link>
+            <path d="m3 10 9-7 9 7" />
+            <path d="M5 9v11h14V9M9 20v-6h6v6" />
+          </svg>
+          <span className="text-[10px] font-semibold">Beranda</span>
+        </Link>
 
-          <Link
-            href="/seller/laporan"
-            className="flex flex-col items-center gap-1 px-4 py-1 text-[#162350]"
-          >
-            <span className="text-lg">▤</span>
-            <span className="text-[10px] font-bold">Laporan</span>
-          </Link>
+        <Link
+          href="/seller/laporan"
+          className="flex flex-col items-center justify-center gap-1 rounded-xl bg-[#eef2ff] px-3 py-2 text-xs font-bold text-[#4f6bd8]"
+        >
+          <svg
+                className="h-4.5 w-4.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <path d="M14 2v6h6M8 13h8M8 17h6" />
+              </svg>
+          <span className="text-[10px] font-bold">Laporan</span>
+        </Link>
 
-          <Link
-            href="/seller/profil"
-            className="flex flex-col items-center gap-1 px-4 py-1 text-[#8993a7]"
+        <Link
+          href="/seller/profil"
+          className="flex flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-xs font-medium text-[#667089] transition hover:bg-[#f4f6fa]"
+        >
+          <svg
+            className="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
           >
-            <span className="text-lg">♙</span>
-            <span className="text-[10px] font-semibold">Profil</span>
-          </Link>
-        </div>
+            <circle cx="12" cy="8" r="4" />
+            <path d="M5 21a7 7 0 0 1 14 0" />
+          </svg>
+          <span className="text-[10px] font-semibold">Profil</span>
+        </Link>
       </nav>
     </main>
   );
