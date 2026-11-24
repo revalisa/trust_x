@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 type Sanggahan = {
   id: string;
@@ -105,8 +106,8 @@ function LoadingCard() {
     </div>
   );
 }
-
-export default function DetailSanggahanPage() {
+ 
+function DetailSanggahanContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -509,5 +510,13 @@ export default function DetailSanggahanPage() {
         </footer>
       </div>
     </main>
+  );
+}
+
+export default function DetailSanggahanPage() {
+  return (
+    <Suspense fallback={<div>Memuat detail sanggahan...</div>}>
+      <DetailSanggahanContent />
+    </Suspense>
   );
 }
