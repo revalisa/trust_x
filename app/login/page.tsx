@@ -367,16 +367,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* LUPA PASSWORD */}
-          <p className="auth-hint text-right text-sm">
-            <Link
-              href="/lupa-password"
-              className="font-medium text-[#4f6bd8] hover:underline"
-            >
-              Lupa kata sandi?
-            </Link>
-          </p>
-
           {/* PESAN */}
           {message && (
             <p
