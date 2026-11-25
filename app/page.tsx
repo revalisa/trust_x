@@ -10,6 +10,8 @@ import Link from "next/link";
 
 import { useRouter } from "next/navigation";
 
+import CekReputasi from "@/components/CekReputasi";
+
 
 
 type SearchType = "wa" | "x";
@@ -370,7 +372,7 @@ export default function LandingPage() {
                     type="submit"
                     className="rounded-xl bg-[#7792ff] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#6682f0] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#22346b]"
                   >
-                    Cek Reputasi
+                    Cek Reputasi <CekReputasi variant="compact" />
                   </button>
                 </div>
                 {error && (
