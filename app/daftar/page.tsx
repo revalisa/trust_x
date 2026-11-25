@@ -15,6 +15,7 @@ export default function DaftarPage() {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [username_x, setUsernameX] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -62,13 +63,14 @@ export default function DaftarPage() {
         email: email.trim().toLowerCase(),
         password,
         options: {
-          data: {
-            full_name: fullName.trim(),
-            role,
-            phone: phone.trim(),
-            store_name: role === "seller" ? storeName.trim() : "",
+            data: {
+              full_name: fullName.trim(),
+              role,
+              username_x: username_x.trim().replace(/^@/, ""),
+              phone: phone.trim(),
+              store_name: role === "seller" ? storeName.trim() : "",
+            },
           },
-        },
       });
 
       if (error) {
@@ -184,6 +186,22 @@ export default function DaftarPage() {
               placeholder="nama@email.com"
               required
               autoComplete="email"
+              className="w-full rounded-xl border border-[#e3e7f0] px-4 py-3 text-sm outline-none transition focus:border-[#4f6bd8]"
+            />
+          </div>
+
+          {/* Username X*/}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-[#172033]">
+              Username X
+            </label>
+            <input
+              type="text"
+              value={username_x}
+              onChange={(e) => setUsernameX(e.target.value)}
+              placeholder="Masukkan username x"
+              required
+              autoComplete="name"
               className="w-full rounded-xl border border-[#e3e7f0] px-4 py-3 text-sm outline-none transition focus:border-[#4f6bd8]"
             />
           </div>

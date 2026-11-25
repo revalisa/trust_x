@@ -14,23 +14,26 @@ type ProfilToko = {
   deskripsi_toko: string | null;
   nomor_telepon: string | null;
   email: string | null;
+  username_x: string | null
   tanggal_dibuat: string | null;
 };
 
 type FormProfil = {
   nama_lengkap: string;
   nama_toko: string;
+  email: string;
+  username_x: string;
   deskripsi_toko: string;
   nomor_telepon: string;
-  email: string;
 };
 
 const FORM_KOSONG: FormProfil = {
   nama_lengkap: "",
   nama_toko: "",
+  email:"",
+  username_x:"",
   deskripsi_toko: "",
   nomor_telepon: "",
-  email: "",
 };
 
 export default function ProfilPage() {
@@ -71,7 +74,7 @@ export default function ProfilPage() {
           supabase
             .from("profil_toko")
             .select(
-              "id, nama_lengkap, nama_toko, deskripsi_toko, nomor_telepon, email, tanggal_dibuat"
+              "id, nama_lengkap, nama_toko, email, username_x, deskripsi_toko, nomor_telepon, tanggal_dibuat"
             )
             .eq("id", userId)
             .maybeSingle(),
@@ -103,9 +106,10 @@ export default function ProfilPage() {
         setForm({
           nama_lengkap: data.nama_lengkap || "",
           nama_toko: data.nama_toko || "",
+          email: data.email ||"",
+          username_x: data.username_x || "",
           deskripsi_toko: data.deskripsi_toko || "",
           nomor_telepon: data.nomor_telepon || "",
-          email: data.email || "",
         });
 
         if (laporanResult.error) {
@@ -169,9 +173,10 @@ export default function ProfilPage() {
     setForm({
       nama_lengkap: profil.nama_lengkap || "",
       nama_toko: profil.nama_toko || "",
+      email: profil.email || "",
+      username_x: profil.username_x || "",
       deskripsi_toko: profil.deskripsi_toko || "",
       nomor_telepon: profil.nomor_telepon || "",
-      email: profil.email || "",
     });
 
     setError("");
@@ -186,9 +191,10 @@ export default function ProfilPage() {
     setForm({
       nama_lengkap: profil.nama_lengkap || "",
       nama_toko: profil.nama_toko || "",
+      email: profil.email || "",
+      username_x: profil.username_x || "",
       deskripsi_toko: profil.deskripsi_toko || "",
       nomor_telepon: profil.nomor_telepon || "",
-      email: profil.email || "",
     });
 
     setEditing(false);
@@ -197,6 +203,7 @@ export default function ProfilPage() {
   }
 
     // SAVE PROFILE
+// SAVE PROFILE
 async function handleSave(e: FormEvent<HTMLFormElement>) {
   e.preventDefault();
 
@@ -235,66 +242,52 @@ async function handleSave(e: FormEvent<HTMLFormElement>) {
       return;
     }
 
-        const updateData = {
+    // PENTING: Ambil data dari FORM, bukan profil lama
+    const updateData = {
       nama_lengkap: form.nama_lengkap.trim(),
       nama_toko: form.nama_toko.trim(),
-      deskripsi_toko: form.deskripsi_toko.trim() || null,
-      nomor_telepon: form.nomor_telepon.trim() || null,
-      email: form.email.trim() || null,
+      email: form.email.trim(),
+      username_x: form.username_x.trim().replace(/^@/, ""),
+      deskripsi_toko: form.deskripsi_toko.trim(),
+      nomor_telepon: form.nomor_telepon.trim(),
     };
 
     const { data: updatedData, error: updateError } = await supabase
-  .from("profil_toko")
-  .update(updateData)
-  .eq("id", userId)
-  .select("id, deskripsi_toko")
-  .maybeSingle();
+      .from("profil_toko")
+      .update(updateData)
+      .eq("id", userId)
+      .select(
+        "id, nama_lengkap, nama_toko, email, username_x, deskripsi_toko, nomor_telepon, tanggal_dibuat"
+      )
+      .maybeSingle();
 
-if (updateError) {
-  console.error("Update profil gagal:", {
-    message: updateError.message,
-    code: updateError.code,
-    details: updateError.details,
-    hint: updateError.hint,
-  });
+    if (updateError) {
+      console.error("Update profil gagal:", updateError);
 
-  setError(`Profil gagal disimpan: ${updateError.message}`);
-  return;
-}
+      setError(`Profil gagal disimpan: ${updateError.message}`);
+      return;
+    }
 
-if (!updatedData) {
-  console.error("Tidak ada baris profil_toko yang berhasil diperbarui.");
+    if (!updatedData) {
+      setError(
+        "Data tidak berhasil diperbarui. Periksa izin akses database (RLS)."
+      );
+      return;
+    }
 
-  setError(
-    "Data profil tidak berhasil diperbarui. Periksa ID akun dan izin akses database."
-  );
-  return;
-}
+    // Simpan hasil terbaru ke state
+    const profilBaru = updatedData as ProfilToko;
 
-console.log("Profil berhasil diperbarui:", updatedData);
+    setProfil(profilBaru);
 
-    // Update tampilan lokal setelah update database berhasil
-    setProfil((prev) =>
-      prev
-        ? {
-            ...prev,
-            nama_lengkap: updateData.nama_lengkap,
-            nama_toko: updateData.nama_toko,
-            deskripsi_toko: updateData.deskripsi_toko,
-            nomor_telepon: updateData.nomor_telepon,
-            email: updateData.email,
-          }
-        : prev
-    );
-
-    setForm((prev) => ({
-      ...prev,
-      nama_lengkap: updateData.nama_lengkap,
-      nama_toko: updateData.nama_toko,
-      deskripsi_toko: updateData.deskripsi_toko ?? "",
-      nomor_telepon: updateData.nomor_telepon ?? "",
-      email: updateData.email ?? "",
-    }));
+    setForm({
+      nama_lengkap: profilBaru.nama_lengkap || "",
+      nama_toko: profilBaru.nama_toko || "",
+      email: profilBaru.email || "",
+      username_x: profilBaru.username_x || "",
+      deskripsi_toko: profilBaru.deskripsi_toko || "",
+      nomor_telepon: profilBaru.nomor_telepon || "",
+    });
 
     setEditing(false);
     setSuccess("Profil toko berhasil diperbarui.");
@@ -537,8 +530,8 @@ console.log("Profil berhasil diperbarui:", updatedData);
       </header>
 
       {/* PAGE CONTENT */}
-      <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pt-8 lg:px-8">
-        <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-7xl px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+        <div className="mx-auto max-w-7xl">
           {/* PAGE TITLE */}
           <section className="mb-6">
             <div className="flex items-center gap-2">
@@ -597,9 +590,9 @@ console.log("Profil berhasil diperbarui:", updatedData);
           )}
 
           {/* PROFILE CARD */}
-          <section className="mb-6 overflow-hidden rounded-24px border border-[#e4e9f3] bg-white shadow-sm">
+          <section className="mb-6 overflow-hidden rounded-[28px] border border-[#e4e9f3] bg-white shadow-lg shadow-[#162350]/5">
             {/* COVER */}
-            <div className="relative h-28 overflow-hidden z-0 bg-linear-to-br from-[#162350] via-[#22346b] to-[#4f6bd8] sm:h-36">
+            <div className="relative h-36 overflow-hidden z-0 bg-linear-to-br from-[#162350] via-[#22346b] to-[#3c56ad] sm:h-44">
               <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full border border-white/10" />
               <div className="absolute -right-5 -top-10 h-36 w-36 rounded-full border border-white/10" />
               <div className="absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-[#8ea6ff]/10 blur-2xl" />
@@ -620,20 +613,17 @@ console.log("Profil berhasil diperbarui:", updatedData);
             </div>
 
             {/* PROFILE BODY */}
-            <div className="px-5 pb-6 sm:px-7">
+            <div className="px-5 pb-7 sm:px-8">
               <div className="-mt-10 flex flex-col gap-4 sm:-mt-11 sm:flex-row sm:items-end sm:justify-between">
-                <div className="flex w-full min-w-0 items-end gap-3 sm:gap-4">
+                <div className="flex min-w-0 items-end gap-3 sm:gap-4">
                   {/* AVATAR */}
-                  <div className="flex h-20 w-20 shrink-0  z-20 items-center justify-center rounded-[22px] border-4 border-white bg-linear-to-br from-[#4f6bd8] to-[#162350] text-3xl font-extrabold uppercase text-white shadow-lg sm:h-24 sm:w-24 sm:rounded-[26px] sm:text-4xl">
+                  <div className="flex h-24 w-24 shrink-0 z-20 items-center justify-center rounded-[22px] border-4 border-white bg-linear-to-br from-[#4f6bd8] to-[#162350] text-3xl font-extrabold uppercase text-white shadow-lg sm:h-28 sm:w-28 sm:rounded-[28px] sm:text-4xl">
                     {initial}
                   </div>
 
                   {/* STORE IDENTITY */}
-                  <div className="min-w-0 flex-1 pb-1">
-                  <h1 className="w-full text-xl capitalize font-extrabold tracking-tight leading-snug text-[#162350] break-all sm:text-2xl">
-                      {profil.nama_lengkap || "Pemilik Toko"}
-                    </h1>
-                    <h2 className="wrap-break-word text-xl font-extrabold tracking-tight text-[#162350] sm:text-2xl">
+                  <div className="min-w-0 pb-1 z-0">
+                    <h2 className="wrap-break-word text-xl font-extrabold capitalize tracking-tight text-[#162350] sm:text-2xl">
                       {profil.nama_toko || "Toko TrustX"}
                     </h2>
                     <p className="mt-1 break-all text-xs text-[#667089] sm:text-sm">
@@ -718,7 +708,7 @@ console.log("Profil berhasil diperbarui:", updatedData);
           </section>
 
           {/* STORE SUMMARY */}
-          <section className="mb-6 rounded-3xl border border-[#e4e9f3] bg-white p-5 shadow-sm sm:p-6">
+          <section className="mb-6 rounded-[28px] border border-[#e4e9f3] bg-white p-5 shadow-sm transition hover:shadow-md sm:p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#4f6bd8]">
                 <svg
@@ -801,7 +791,7 @@ console.log("Profil berhasil diperbarui:", updatedData);
           </section>
 
           {/* STORE INFORMATION */}
-          <section className="mb-6 rounded-3xl border border-[#e4e9f3] bg-white p-5 shadow-sm sm:p-6">
+          <section className="mb-6 rounded-[28px] border border-[#e4e9f3] bg-white p-5 shadow-sm transition hover:shadow-md sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#4f6bd8]">
@@ -890,6 +880,30 @@ console.log("Profil berhasil diperbarui:", updatedData);
                     className="w-full rounded-xl border border-[#e3e7f0] bg-[#fbfcfe] px-4 py-3 text-sm outline-none transition placeholder:text-[#a3adbf] focus:border-[#4f6bd8] focus:bg-white focus:ring-4 focus:ring-[#4f6bd8]/10"
                   />
                 </div>
+                {/* USERNAME X */}
+                <div>
+                  <label
+                    htmlFor="username_x"
+                    className="mb-2 block text-sm font-bold text-[#34415f]"
+                  >
+                    Username X
+                  </label>
+
+                  <input
+                    id="username_x"
+                    name="username_x"
+                    type="text"
+                    value={form.username_x}
+                    onChange={handleChange}
+                    maxLength={50}
+                    placeholder="@username_kamu"
+                    className="w-full rounded-xl border border-[#e3e7f0] bg-[#fbfcfe] px-4 py-3 text-sm outline-none transition placeholder:text-[#a3adbf] focus:border-[#4f6bd8] focus:bg-white focus:ring-4 focus:ring-[#4f6bd8]/10"
+                  />
+
+                  <p className="mt-1.5 text-xs leading-5 text-[#8992a7]">
+                    Username X yang digunakan untuk identitas dan pengecekan reputasi akun.
+                  </p>
+                </div>
 
                 {/* DESCRIPTION */}
                 <div>
@@ -932,29 +946,6 @@ console.log("Profil berhasil diperbarui:", updatedData);
                     placeholder="Contoh: 081234567890"
                     className="w-full rounded-xl border border-[#e3e7f0] bg-[#fbfcfe] px-4 py-3 text-sm outline-none transition placeholder:text-[#a3adbf] focus:border-[#4f6bd8] focus:bg-white focus:ring-4 focus:ring-[#4f6bd8]/10"
                   />
-                </div>
-
-                {/* EMAIL */}
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="mb-2 block text-sm font-bold text-[#34415f]"
-                  >
-                    Email Kontak Toko
-                  </label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    maxLength={254}
-                    placeholder="email@contoh.com"
-                    className="w-full rounded-xl border border-[#e3e7f0] bg-[#fbfcfe] px-4 py-3 text-sm outline-none transition placeholder:text-[#a3adbf] focus:border-[#4f6bd8] focus:bg-white focus:ring-4 focus:ring-[#4f6bd8]/10"
-                  />
-                  <p className="mt-1.5 text-xs leading-5 text-[#8992a7]">
-                    Email kontak toko. Perubahan ini tidak mengubah email login.
-                  </p>
                 </div>
 
                 {/* FORM ACTION */}
@@ -1015,12 +1006,16 @@ console.log("Profil berhasil diperbarui:", updatedData);
                   label="Email Kontak Toko"
                   value={profil.email || "Belum ditambahkan"}
                 />
+                <InfoCard
+                  label="Username X"
+                  value={profil.username_x || "Belum ditambahkan"}
+                />
               </div>
             )}
           </section>
 
           {/* ACCOUNT INFORMATION */}
-          <section className="mb-6 rounded-3xl border border-[#e4e9f3] bg-white p-5 shadow-sm sm:p-6">
+          <section className="mb-6 rounded-[28px] border border-[#e4e9f3] bg-white p-5 shadow-sm transition hover:shadow-md sm:p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#4f6bd8]">
                 <svg
@@ -1055,7 +1050,7 @@ console.log("Profil berhasil diperbarui:", updatedData);
           </section>
 
           {/* ACCOUNT SETTINGS */}
-          <section className="mb-6 rounded-3xl border border-[#e4e9f3] bg-white p-5 shadow-sm sm:p-6">
+          <section className="mb-6 rounded-[28px] border border-[#e4e9f3] bg-white p-5 shadow-sm transition hover:shadow-md sm:p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#4f6bd8]">
                 <svg
