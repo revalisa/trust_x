@@ -379,7 +379,7 @@ export default function ProfilBuyerPage() {
     <main className="min-h-screen bg-[#f5f7fc] text-[#172033]">
       {/* HEADER */}
             <header className="sticky top-0 z-40 border-b border-[#e3e7f0] bg-white/95 backdrop-blur-md">
-              <div className="mx-auto flex h-19 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+              <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
                 <Link href="/buyer" className="flex shrink-0 items-center gap-3">
                   <Image
                     src="/assets/images/logo-trustx.svg"
@@ -473,8 +473,9 @@ export default function ProfilBuyerPage() {
       
                   <Link
                     href="/buyer/profil"
-                    aria-label="Profil pembeli"
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#cbcfdf] to-[#758ad5] text-sm font-extrabold uppercase text-white shadow-md ring-2 ring-white"
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#4f6bd8] to-[#162350] text-sm font-extrabold uppercase text-white shadow-sm transition hover:scale-105"
+                    title="Profil"
+                    aria-label="Profil"
                   >
                     {profil.nama_lengkap.slice(0, 1) || "B"}
                   </Link>
@@ -491,8 +492,8 @@ export default function ProfilBuyerPage() {
             </header>
 
       {/* PAGE CONTENT */}
-      <div className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pt-8 lg:px-8">
-        <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-7xl px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+        <div className="mx-auto max-w-7xl">
           {/* PAGE TITLE */}
           <section className="mb-6">
             <div className="flex items-center gap-2">
@@ -551,7 +552,7 @@ export default function ProfilBuyerPage() {
           )}
 
           {/* PROFILE CARD */}
-          <section className="mb-6 overflow-hidden rounded-3xl border border-[#e4e9f3] bg-white shadow-sm">
+          <section className="mb-6 overflow-hidden rounded-2xl border border-[#e3e7f0] bg-white shadow-sm">
             {/* COVER */}
             <div className="relative z-0 h-28 overflow-hidden bg-linear-to-br from-[#162350] via-[#22346b] to-[#4f6bd8] sm:h-36">
               <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full border border-white/10" />
@@ -576,23 +577,24 @@ export default function ProfilBuyerPage() {
             {/* PROFILE BODY */}
             <div className="px-5 pb-6 sm:px-7">
               <div className="-mt-10 flex flex-col gap-4 sm:-mt-11 sm:flex-row sm:items-end sm:justify-between">
-                <div className="flex min-w-0 items-end gap-3 sm:gap-4">
+                <div className="flex w-full min-w-0 items-end gap-3 sm:gap-4">
+
                   {/* AVATAR */}
-                  <div className="z-20 flex h-20 w-20 shrink-0 items-center justify-center rounded-[22px] border-4 border-white bg-linear-to-br from-[#4f6bd8] to-[#162350] text-3xl font-extrabold uppercase text-white shadow-lg sm:h-24 sm:w-24 sm:rounded-[26px] sm:text-4xl">
+                  <div className="relative z-20 flex h-20 w-20 shrink-0 items-center justify-center rounded-[22px] border-4 border-white bg-linear-to-br from-[#4f6bd8] to-[#162350] text-3xl font-extrabold uppercase text-white shadow-lg sm:h-24 sm:w-24 sm:rounded-[26px] sm:text-4xl">
                     {initial}
                   </div>
 
-                  {/* BUYER IDENTITY */}
-                  <div className="min-w-0 pb-1">
-                    <h2 className="wrap-break-word text-xl font-extrabold tracking-tight text-[#162350] sm:text-2xl">
-                      {profil.nama_lengkap || "Buyer TrustX"}
-                    </h2>
-                    <p className="mt-1 break-all text-xs text-[#667089] sm:text-sm">
-                      {profil.email || "Email belum ditambahkan"}
-                    </p>
-                  </div>
-                </div>
+                {/* BUYER IDENTITY */}
+                <div className="min-w-0 flex-1 pb-1">
+                  <h1 className="w-full text-xl capitalize font-extrabold tracking-tight leading-snug text-[#162350] break-all sm:text-2xl">
+                    {profil.nama_lengkap || "Buyer TrustX"}
+                  </h1>
 
+                  <p className="mt-1 w-full break-all text-xs text-[#667089] sm:text-sm">
+                    {profil.email || "Email belum ditambahkan"}
+                  </p>
+              </div>
+              </div>
                 {/* ACTION BUTTONS */}
                 <div className="flex flex-wrap gap-2 sm:pb-1">
                   <button
@@ -669,7 +671,7 @@ export default function ProfilBuyerPage() {
           </section>
 
           {/* BUYER SUMMARY */}
-          <section className="mb-6 rounded-3xl border border-[#e4e9f3] bg-white p-5 shadow-sm sm:p-6">
+          <section className="mb-6 rounded-2xl border border-[#e3e7f0] bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#4f6bd8]">
                 <svg
@@ -751,7 +753,7 @@ export default function ProfilBuyerPage() {
           </section>
 
           {/* PROFILE INFORMATION */}
-          <section className="mb-6 rounded-3xl border border-[#e4e9f3] bg-white p-5 shadow-sm sm:p-6">
+          <section className="mb-6 rounded-2xl border border-[#e3e7f0] bg-white p-5 shadow-sm sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#4f6bd8]">
@@ -916,7 +918,7 @@ export default function ProfilBuyerPage() {
           </section>
 
           {/* ACCOUNT INFORMATION */}
-          <section className="mb-6 rounded-3xl border border-[#e4e9f3] bg-white p-5 shadow-sm sm:p-6">
+          <section className="mb-6 rounded-2xl border border-[#e3e7f0] bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#4f6bd8]">
                 <svg
@@ -951,7 +953,7 @@ export default function ProfilBuyerPage() {
           </section>
 
           {/* ACCOUNT SETTINGS */}
-          <section className="mb-6 rounded-3xl border border-[#e4e9f3] bg-white p-5 shadow-sm sm:p-6">
+          <section className="mb-6 rounded-2xl border border-[#e3e7f0] bg-white p-5 shadow-sm sm:p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef2ff] text-[#4f6bd8]">
                 <svg
@@ -1116,7 +1118,7 @@ export default function ProfilBuyerPage() {
           
                   <Link
                     href="/buyer/laporan"
-                    className="flex flex-col items-center gap-1 py-2 text-[#4f6bd8]"
+                    className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
                   >
                     <svg
                       className="h-5 w-5"
@@ -1133,7 +1135,7 @@ export default function ProfilBuyerPage() {
           
                   <Link
                     href="/buyer/profil"
-                    className="flex flex-col items-center gap-1 py-2 text-[#8a94a8]"
+                    className="flex flex-col items-center gap-1 py-2 text-[#4f6bd8]"
                   >
                     <svg
                       className="h-5 w-5"
@@ -1145,7 +1147,7 @@ export default function ProfilBuyerPage() {
                       <circle cx="12" cy="8" r="4" />
                       <path d="M5 21a7 7 0 0 1 14 0" />
                     </svg>
-                    <span className="text-[10px] font-semibold">Profil</span>
+                    <span className="text-[10px] font-bold">Profil</span>
                   </Link>
                 </nav>
 

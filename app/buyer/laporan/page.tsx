@@ -379,8 +379,9 @@ export default function BuyerLaporanPage() {
 
             <Link
               href="/buyer/profil"
-              aria-label="Profil pembeli"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#cbcfdf] to-[#758ad5] text-sm font-extrabold uppercase text-white shadow-md ring-2 ring-white"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#4f6bd8] to-[#162350] text-sm font-extrabold uppercase text-white shadow-sm transition hover:scale-105"
+              title="Profil"
+              aria-label="Profil"
             >
               {nama.slice(0, 1) || "B"}
             </Link>

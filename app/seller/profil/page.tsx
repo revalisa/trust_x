@@ -235,7 +235,7 @@ async function handleSave(e: FormEvent<HTMLFormElement>) {
       return;
     }
 
-    const updateData = {
+        const updateData = {
       nama_lengkap: form.nama_lengkap.trim(),
       nama_toko: form.nama_toko.trim(),
       deskripsi_toko: form.deskripsi_toko.trim() || null,
@@ -243,22 +243,35 @@ async function handleSave(e: FormEvent<HTMLFormElement>) {
       email: form.email.trim() || null,
     };
 
-    const { error: updateError } = await supabase
-      .from("profil_toko")
-      .update(updateData)
-      .eq("id", userId);
+    const { data: updatedData, error: updateError } = await supabase
+  .from("profil_toko")
+  .update(updateData)
+  .eq("id", userId)
+  .select("id, deskripsi_toko")
+  .maybeSingle();
 
-    if (updateError) {
-      console.error("Update profil gagal:", {
-        message: updateError.message,
-        code: updateError.code,
-        details: updateError.details,
-        hint: updateError.hint,
-      });
+if (updateError) {
+  console.error("Update profil gagal:", {
+    message: updateError.message,
+    code: updateError.code,
+    details: updateError.details,
+    hint: updateError.hint,
+  });
 
-      setError(`Profil gagal disimpan: ${updateError.message}`);
-      return;
-    }
+  setError(`Profil gagal disimpan: ${updateError.message}`);
+  return;
+}
+
+if (!updatedData) {
+  console.error("Tidak ada baris profil_toko yang berhasil diperbarui.");
+
+  setError(
+    "Data profil tidak berhasil diperbarui. Periksa ID akun dan izin akses database."
+  );
+  return;
+}
+
+console.log("Profil berhasil diperbarui:", updatedData);
 
     // Update tampilan lokal setelah update database berhasil
     setProfil((prev) =>
@@ -505,7 +518,7 @@ async function handleSave(e: FormEvent<HTMLFormElement>) {
 
             <Link
               href="/seller/profil"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#4f6bd8] to-[#162350] text-sm font-extrabold text-white shadow-sm transition hover:scale-105"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-[#4f6bd8] to-[#162350] text-sm font-extrabold uppercase text-white shadow-sm transition hover:scale-105"
               title="Profil"
               aria-label="Profil"
             >
@@ -609,15 +622,15 @@ async function handleSave(e: FormEvent<HTMLFormElement>) {
             {/* PROFILE BODY */}
             <div className="px-5 pb-6 sm:px-7">
               <div className="-mt-10 flex flex-col gap-4 sm:-mt-11 sm:flex-row sm:items-end sm:justify-between">
-                <div className="flex min-w-0 items-end gap-3 sm:gap-4">
+                <div className="flex w-full min-w-0 items-end gap-3 sm:gap-4">
                   {/* AVATAR */}
                   <div className="flex h-20 w-20 shrink-0  z-20 items-center justify-center rounded-[22px] border-4 border-white bg-linear-to-br from-[#4f6bd8] to-[#162350] text-3xl font-extrabold uppercase text-white shadow-lg sm:h-24 sm:w-24 sm:rounded-[26px] sm:text-4xl">
                     {initial}
                   </div>
 
                   {/* STORE IDENTITY */}
-                  <div className="min-w-0 pb-1">
-                    <h1 className="wrap-break-word text-xl font-extrabold tracking-tight text-[#162350] sm:text-2xl">
+                  <div className="min-w-0 flex-1 pb-1">
+                  <h1 className="w-full text-xl capitalize font-extrabold tracking-tight leading-snug text-[#162350] break-all sm:text-2xl">
                       {profil.nama_lengkap || "Pemilik Toko"}
                     </h1>
                     <h2 className="wrap-break-word text-xl font-extrabold tracking-tight text-[#162350] sm:text-2xl">
